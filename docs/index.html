@@ -366,10 +366,22 @@
     return u.href;
   }
 
+  // ถ้าเครื่องเคยสมัครด้วยกุญแจอื่น (เช่น กุญแจทดสอบ) ให้ยกเลิกแล้วสมัครใหม่ด้วยกุญแจของระบบจริง
+  function sameKey(sub, keyB64) {
+    try {
+      var a = new Uint8Array(sub.options.applicationServerKey), b = b64ToBytes(keyB64);
+      if (a.length !== b.length) return false;
+      for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+      return true;
+    } catch (e) { return true; }
+  }
   function subscribe() {
     return navigator.serviceWorker.ready.then(function (reg) {
       return reg.pushManager.getSubscription().then(function (sub) {
-        return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(C.pushPublicKey) });
+        if (sub && sameKey(sub, C.pushPublicKey)) return sub;
+        return (sub ? sub.unsubscribe() : Promise.resolve()).then(function () {
+          return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(C.pushPublicKey) });
+        });
       });
     }).then(function (sub) {
       return fetch(C.pushSubscribeUrl, {

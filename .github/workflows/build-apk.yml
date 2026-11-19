@@ -7,6 +7,7 @@ on:
       - 'docs/**'
       - '.github/workflows/pages.yml'
       - 'push-test/**'
+      - 'backend-addon/**'
       - '.github/workflows/push-test.yml'
   workflow_dispatch:
 
