@@ -39,28 +39,32 @@ jobs:
       - name: Sync web config into Android project
         run: npx cap sync android
 
-      - name: Prepare signing key (if secrets are set)
+      - name: Prepare signing key (if secret OEE_SIGNING is set)
         id: sign
         env:
-          KEYSTORE_B64: ${{ secrets.OEE_KEYSTORE_BASE64 }}
+          OEE_SIGNING: ${{ secrets.OEE_SIGNING }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/oee.jks"
-            echo "OEE_KEYSTORE_FILE=$RUNNER_TEMP/oee.jks" >> "$GITHUB_ENV"
+          if [ -n "$OEE_SIGNING" ]; then
+            PW=$(printf '%s' "$OEE_SIGNING" | jq -r .password)
+            echo "::add-mask::$PW"
+            printf '%s' "$OEE_SIGNING" | jq -r .keystore | base64 -d > "$RUNNER_TEMP/oee.jks"
+            {
+              echo "OEE_KEYSTORE_FILE=$RUNNER_TEMP/oee.jks"
+              echo "OEE_KEYSTORE_PASSWORD=$PW"
+              echo "OEE_KEY_PASSWORD=$PW"
+              echo "OEE_KEY_ALIAS=$(printf '%s' "$OEE_SIGNING" | jq -r .alias)"
+            } >> "$GITHUB_ENV"
             echo "task=assembleRelease" >> "$GITHUB_OUTPUT"
             echo "dir=release" >> "$GITHUB_OUTPUT"
+            echo "Signing with permanent key"
           else
-            echo "No signing secrets: building debug-signed APK"
+            echo "No OEE_SIGNING secret: building debug-signed APK"
             echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
             echo "dir=debug" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build APK
         working-directory: android
-        env:
-          OEE_KEYSTORE_PASSWORD: ${{ secrets.OEE_KEYSTORE_PASSWORD }}
-          OEE_KEY_ALIAS: ${{ secrets.OEE_KEY_ALIAS }}
-          OEE_KEY_PASSWORD: ${{ secrets.OEE_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon ${{ steps.sign.outputs.task }}
