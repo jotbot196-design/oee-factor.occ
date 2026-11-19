@@ -2,7 +2,7 @@
  * - จำเป็นสำหรับการแจ้งเตือนบน iPhone / Android
  * - ไม่ได้เก็บข้อมูล OEE ไว้ในเครื่อง ข้อมูลยังมาจากเว็บ OEE จริงทุกครั้ง
  */
-const VERSION = 'oee-shell-v1';
+const VERSION = 'oee-shell-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
