@@ -122,6 +122,7 @@ public class MainActivity extends BridgeActivity {
             else Toast.makeText(this, "ยังไม่มีรหัส ลองเปิดแอปใหม่อีกครั้ง", Toast.LENGTH_LONG).show();
             return;
         }
+        if (intent.hasExtra(Alerts.EXTRA_ID)) Alerts.acknowledge(this, intent.getIntExtra(Alerts.EXTRA_ID, 0)); // เปิดดู = รับทราบ
         String page = intent.getStringExtra("page");
         if (page != null && !page.isEmpty() && getBridge() != null) {
             getBridge().getWebView().loadUrl(APP_URL + "?page=" + Uri.encode(page));

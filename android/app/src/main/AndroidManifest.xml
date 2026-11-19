@@ -28,6 +28,8 @@
 
         <!-- ปุ่ม "รับทราบ" ในแจ้งเตือนเครื่องเสีย -->
         <receiver android:name=".AckReceiver" android:exported="false" />
+        <!-- ดังซ้ำทุก 3 นาที ถ้าแจ้งเตือนเครื่องเสียยังไม่ถูกรับทราบ -->
+        <receiver android:name=".RealertReceiver" android:exported="false" />
 
         <!-- รับแจ้งเตือนจาก Firebase -->
         <service
@@ -67,6 +69,7 @@
     <!-- แจ้งเตือน (Android 13+) และขอยกเว้นการประหยัดแบต เพื่อให้แจ้งเตือนมาทันที -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- ให้ Android 11+ หาแอปกล้องและแอปเปิดไฟล์เจอ -->
     <queries>
