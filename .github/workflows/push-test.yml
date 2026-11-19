@@ -1,0 +1,23 @@
+name: Push test
+
+on:
+  push:
+    branches: [main]
+    paths: ['push-test/codes.txt']
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Send test notification
+        working-directory: push-test
+        env:
+          PUSH_TEST_PRIVATE_KEY: ${{ secrets.PUSH_TEST_PRIVATE_KEY }}
+        run: |
+          npm install --no-audit --no-fund
+          node send.js

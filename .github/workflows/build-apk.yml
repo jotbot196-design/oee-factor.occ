@@ -6,6 +6,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - '.github/workflows/pages.yml'
+      - 'push-test/**'
+      - '.github/workflows/push-test.yml'
   workflow_dispatch:
 
 permissions:

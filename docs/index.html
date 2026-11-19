@@ -31,6 +31,20 @@
   #pushBar .go{background:var(--amber);color:#12181D}
   #pushBar .x{background:none;color:var(--muted);padding:8px}
 
+  #testBar{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#2a2340;border-bottom:1px solid var(--line);font-size:14px}
+  #testBar span{flex:1}
+  #testBar button{border:0;border-radius:10px;padding:8px 12px;font:inherit;font-weight:700}
+  #testBar .go{background:var(--amber);color:#12181D}
+  #testBar .x{background:none;color:var(--muted);padding:8px}
+  #testModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
+  #testModal .box{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;width:100%;max-width:420px}
+  #testModal b{font-size:17px}
+  #testModal p{font-size:14px;color:var(--text);margin:8px 0 12px}
+  #testModal textarea{width:100%;height:90px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:10px;font-size:11px;padding:8px;margin-bottom:10px}
+  #testModal button{display:block;width:100%;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:700;margin-top:8px}
+  #testModal .go{background:var(--amber);color:#12181D}
+  #testModal .close{background:var(--panel2);color:var(--text)}
+
   /* ---------- โหมดหน้าติดตั้ง ---------- */
   .wrap{max-width:520px;margin:0 auto;padding:28px 18px calc(150px + env(safe-area-inset-bottom))}
   header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
@@ -86,6 +100,20 @@
     <span>🔔 รับแจ้งเตือนเครื่องเสีย / สต็อกต่ำ</span>
     <button class="go" onclick="enablePush()">เปิดการแจ้งเตือน</button>
     <button class="x" onclick="hidePushBar(true)" aria-label="ปิด">✕</button>
+  </div>
+  <div id="testBar" class="hidden">
+    <span>🧪 ทดสอบการแจ้งเตือน</span>
+    <button class="go" onclick="testPush()">ทดสอบ</button>
+    <button class="x" onclick="document.getElementById('testBar').classList.add('hidden')" aria-label="ปิด">✕</button>
+  </div>
+  <div id="testModal" class="hidden">
+    <div class="box">
+      <b id="tmTitle">ทดสอบการแจ้งเตือน</b>
+      <p id="tmMsg"></p>
+      <textarea id="tmCode" readonly class="hidden"></textarea>
+      <button class="go hidden" id="tmCopy" onclick="copyTestCode()">📋 คัดลอกรหัส</button>
+      <button class="close" onclick="document.getElementById('testModal').classList.add('hidden')">ปิด</button>
+    </div>
   </div>
   <iframe id="appFrame" title="OEE" allow="camera; clipboard-read; clipboard-write; fullscreen; web-share"></iframe>
 </div>
@@ -285,6 +313,53 @@
       document.getElementById('pushBar').classList.remove('hidden');
     }
     if (pushReady && Notification.permission === 'granted') subscribe().catch(function () {});
+
+    window.testPush = testPush; window.copyTestCode = copyTestCode;
+    if (C.testPush && C.testPushPublicKey) document.getElementById('testBar').classList.remove('hidden');
+  }
+
+  // ---------- ทดสอบการแจ้งเตือน (ชั่วคราว) ----------
+  function modal(title, msg, code) {
+    document.getElementById('tmTitle').textContent = title;
+    document.getElementById('tmMsg').innerHTML = msg;
+    var ta = document.getElementById('tmCode'), cp = document.getElementById('tmCopy');
+    ta.classList.toggle('hidden', !code); cp.classList.toggle('hidden', !code);
+    ta.value = code || '';
+    document.getElementById('testModal').classList.remove('hidden');
+  }
+  function copyTestCode() {
+    var ta = document.getElementById('tmCode'), btn = document.getElementById('tmCopy');
+    (navigator.clipboard ? navigator.clipboard.writeText(ta.value) : Promise.reject())
+      .then(function () { btn.textContent = '✅ คัดลอกแล้ว วางส่งให้ Claude ได้เลย'; })
+      .catch(function () { ta.focus(); ta.select(); btn.textContent = 'กดค้างที่ช่องรหัส → คัดลอก'; });
+  }
+  function testPush() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      modal('❌ เครื่องนี้ยังรับแจ้งเตือนไม่ได้', 'ต้องเปิดจาก<b>ไอคอนบนหน้าจอโฮม</b> และใช้ iOS 16.4 ขึ้นไป<br>(ตั้งค่า → ทั่วไป → เกี่ยวกับ → ดูเวอร์ชัน iOS)');
+      return;
+    }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== 'granted') {
+        modal('❌ ยังไม่ได้อนุญาต', 'เปิดได้ที่ ตั้งค่า → การแจ้งเตือน → OEE → เปิด "อนุญาตการแจ้งเตือน" แล้วกดทดสอบอีกครั้ง');
+        return;
+      }
+      return navigator.serviceWorker.ready.then(function (reg) {
+        // ขั้นที่ 1: แจ้งเตือนจากในเครื่อง
+        return reg.showNotification('OEE ทดสอบ (1/2)', {
+          body: 'ถ้าเห็นข้อความนี้ แปลว่าแจ้งเตือนในเครื่องใช้ได้ ✅', icon: 'icon-192.png', tag: 'oee-test-local'
+        }).then(function () {
+          // ขั้นที่ 2: สมัครรับแจ้งเตือนจากเซิร์ฟเวอร์ แล้วให้รหัสไว้ส่งให้ Claude
+          return reg.pushManager.getSubscription().then(function (sub) {
+            return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(C.testPushPublicKey) });
+          });
+        }).then(function (sub) {
+          var code = 'OEETEST:' + btoa(JSON.stringify(sub));
+          modal('✅ ขั้นที่ 1 ผ่าน', 'ควรเห็นแจ้งเตือน "OEE ทดสอบ (1/2)" ขึ้นแล้ว<br><br><b>ขั้นที่ 2:</b> คัดลอกรหัสด้านล่าง แล้ววางส่งให้ Claude ในแชท Claude จะส่งแจ้งเตือนจากเซิร์ฟเวอร์มาที่เครื่องนี้ (ปิดแอปรอได้เลย)', code);
+        });
+      });
+    }).catch(function (e) {
+      modal('❌ ทดสอบไม่สำเร็จ', 'ข้อผิดพลาด: ' + (e && e.message ? e.message : e));
+    });
   }
 
   function appUrlFor(page) {

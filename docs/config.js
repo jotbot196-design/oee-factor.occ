@@ -11,5 +11,9 @@ window.OEE_CONFIG = {
   // ระบบแจ้งเตือน: ยังไม่เปิดใช้ (ว่างไว้ = ไม่แสดงปุ่ม "เปิดการแจ้งเตือน")
   // เมื่อเพิ่มระบบแจ้งเตือนใน worker.js แล้ว จะใส่ค่า 2 ช่องนี้
   pushPublicKey: '',                 // VAPID public key
-  pushSubscribeUrl: ''               // เช่น 'https://oee.sasatornua.workers.dev/api/push/subscribe'
+  pushSubscribeUrl: '',              // เช่น 'https://oee.sasatornua.workers.dev/api/push/subscribe'
+
+  // โหมดทดสอบการแจ้งเตือน (ชั่วคราว) — ปิดโดยเปลี่ยน testPush เป็น false
+  testPush: true,
+  testPushPublicKey: 'BK5Mm0hxnF0on6rgPv9_c5PwPOOEbuRpBK3Oeir5O6pAgmHYUKedZLOGmgiOg0xgr91pLYqSuh2a9xfqLdu16W0'
 };
