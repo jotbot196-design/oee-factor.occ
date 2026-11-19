@@ -2,7 +2,7 @@
  * - จำเป็นสำหรับการแจ้งเตือนบน iPhone / Android
  * - ไม่ได้เก็บข้อมูล OEE ไว้ในเครื่อง ข้อมูลยังมาจากเว็บ OEE จริงทุกครั้ง
  */
-const VERSION = 'oee-shell-v2';
+const VERSION = 'oee-shell-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
@@ -18,6 +18,8 @@ self.addEventListener('push', (event) => {
     icon: 'icon-192.png',
     badge: 'icon-192.png',
     tag: data.tag || undefined,
+    renotify: !!data.tag,          // ป้ายเดิมก็ต้องเด้ง + มีเสียงทุกครั้ง (ไม่ทับแบบเงียบ)
+    timestamp: data.ts || Date.now(),
     data: { page: data.page || '' }
   }));
 });

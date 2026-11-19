@@ -11,10 +11,12 @@ const lines = fs.readFileSync(__dirname + '/codes.txt', 'utf8').split(/\s+/).fil
   for (const line of lines) {
     const sub = JSON.parse(Buffer.from(line.slice(8), 'base64').toString('utf8'));
     try {
+      const now = new Date();
+      const hhmmss = now.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false });
       const r = await webpush.sendNotification(sub, JSON.stringify({
-        title: 'OEE ทดสอบ (2/2) 🎉',
-        body: 'แจ้งเตือนจากเซิร์ฟเวอร์ใช้ได้ ✅ ระบบพร้อมสำหรับแจ้งเตือนเครื่องเสีย / สต็อกต่ำ',
-        page: '', tag: 'oee-test-server'
+        title: 'OEE ทดสอบ 🔔 ส่งเวลา ' + hhmmss,
+        body: 'แจ้งเตือนจากเซิร์ฟเวอร์ใช้ได้ ✅ เทียบเวลาที่เห็นกับเวลาส่ง เพื่อดูว่าช้าแค่ไหน',
+        page: '', tag: 'oee-test-' + now.getTime(), ts: now.getTime()
       }), { TTL: 3600, urgency: 'high' });
       console.log('sent', sub.endpoint.split('/')[2], r.statusCode); ok++;
     } catch (e) {
