@@ -194,7 +194,8 @@
       <button class="btn" id="andInstallBtn" onclick="installAndroid()">ติดตั้งแอป OEE</button>
       <p class="hint" id="andInstallHint">กดแล้วเลือก <b>ติดตั้ง</b> · รับแจ้งเตือนได้</p>
     </div>
-    <div class="ok hidden" id="andDone" style="margin-bottom:16px">✅ ติดตั้งแล้ว! ไปที่หน้าจอหลัก แล้วเปิดไอคอน <b>OEE</b></div>
+    <div class="ok hidden" id="andWait" style="margin-bottom:16px;background:rgba(255,176,32,.1);border-color:rgba(255,176,32,.4)">⏳ <b>กำลังติดตั้ง...</b> ใช้เวลาประมาณ 1 นาที (ดูความคืบหน้าที่แถบแจ้งเตือน)<br>ถ้าเกิน 3 นาทีแล้วยังไม่เสร็จ ดูหัวข้อ <b>"ติดตั้งค้าง?"</b> ด้านล่าง</div>
+    <div class="ok hidden" id="andDone" style="margin-bottom:16px">✅ ติดตั้งเสร็จแล้ว! เปิดไอคอน <b>OEE</b> ที่หน้าจอหลัก (หรือค้นหา "OEE" ในหน้ารวมแอป)</div>
 
     <div class="card">
       <h2>ติดตั้งบน Android (2 ขั้น)</h2>
@@ -211,6 +212,18 @@
           <li>เลือก <b>"ติดตั้งแอป"</b> หรือ <b>"เพิ่มลงในหน้าจอหลัก"</b> → <b>ติดตั้ง</b></li>
         </ol>
         <p>ถ้าเคยติดตั้งแล้ว ปุ่มจะไม่ขึ้น ให้เปิดจากไอคอน OEE บนหน้าจอหลักได้เลย</p>
+      </details>
+      <details id="andStuck"><summary>ติดตั้งค้าง? ("กำลังติดตั้ง OEE..." ไม่เสร็จ)</summary>
+        <ol>
+          <li>เปิด <b>Play Store</b> → รูปโปรไฟล์ → <b>จัดการแอปและอุปกรณ์</b> → อัปเดต <b>Chrome</b> และ <b>Google Play Store</b> ให้เป็นล่าสุด</li>
+          <li>ปัดแจ้งเตือน "กำลังติดตั้ง" ทิ้ง ปิด Chrome ให้สนิท แล้วกลับมากดติดตั้งใหม่</li>
+        </ol>
+        <p><b>ถ้ายังค้าง ใช้วิธีทางลัด</b> (รับแจ้งเตือนได้เหมือนกัน):</p>
+        <ol>
+          <li>กดปุ่มด้านล่าง เพื่อเปิด OEE แบบแอป</li>
+          <li>ในหน้านั้น กด <b>⋮</b> มุมขวาบน → <b>"เพิ่มลงในหน้าจอหลัก"</b> → เลือก <b>"สร้างทางลัด"</b> → <b>เพิ่ม</b></li>
+        </ol>
+        <a class="btn ghost" href="./?mode=app">เปิด OEE แบบแอป</a>
       </details>
     </div>
 
@@ -272,7 +285,7 @@
     }).catch(function () { hidePushBar(false); });
   };
 
-  if (standalone || params.get('mode') === 'app') { startApp(); return; }
+  if (standalone || params.get('mode') === 'app' || params.get('source') === 'homescreen') { startApp(); return; }
 
   // ---------------- หน้าติดตั้ง ----------------
   document.getElementById('installView').classList.remove('hidden');
@@ -305,6 +318,7 @@
   window.addEventListener('appinstalled', function () {
     deferredPrompt = null;
     document.getElementById('andInstallCard').classList.add('hidden');
+    document.getElementById('andWait').classList.add('hidden');
     document.getElementById('andDone').classList.remove('hidden');
   });
   if (isAndroid && /FBAN|FBAV|Instagram|\bLine\/|; wv\)/i.test(ua)) document.getElementById('andInapp').classList.remove('hidden');
@@ -314,7 +328,7 @@
       deferredPrompt.userChoice.then(function (c) {
         if (c && c.outcome === 'accepted') {
           document.getElementById('andInstallCard').classList.add('hidden');
-          document.getElementById('andDone').classList.remove('hidden');
+          if (document.getElementById('andDone').classList.contains('hidden')) document.getElementById('andWait').classList.remove('hidden');
         }
         deferredPrompt = null;
       });
