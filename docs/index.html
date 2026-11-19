@@ -198,7 +198,7 @@
 
     <div class="card" id="andInstallCard">
       <button class="btn" id="andInstallBtn" onclick="installAndroid()">ติดตั้งแอป OEE</button>
-      <p class="hint" id="andInstallHint">กดแล้วเลือก <b>ติดตั้ง</b> · รับแจ้งเตือนได้</p>
+      <p class="hint" id="andInstallHint">กดแล้วเลือก <b>ติดตั้ง</b> · รอประมาณ 1 นาที · รับแจ้งเตือนได้</p>
     </div>
     <div class="card hidden" id="andWait">
       <div class="inst-row"><div class="spinner"></div><div><b style="font-size:17px">กำลังติดตั้ง OEE...</b><br><span class="hint" style="margin:0">ผ่านไป <span id="andSecs">0</span> วินาที · ปกติไม่เกิน 1–2 นาที</span></div></div>
@@ -209,11 +209,14 @@
     <div class="ok hidden" id="andDone" style="margin-bottom:16px">✅ ติดตั้งเสร็จแล้ว! เปิดไอคอน <b>OEE</b> ที่หน้าจอหลัก (หรือค้นหา "OEE" ในหน้ารวมแอป)<br><a href="#" style="color:var(--muted);font-size:13px" onclick="localStorage.setItem('oee-installed','0');location.reload();return false">ไม่เจอแอป? กดเพื่อติดตั้งใหม่</a></div>
 
     <div class="card">
-      <h2>ติดตั้งบน Android (2 ขั้น)</h2>
+      <h2>ติดตั้งบน Android</h2>
       <ol class="steps">
         <li><div class="step-txt">กดปุ่มสีส้ม <b>"ติดตั้งแอป OEE"</b> ด้านบน</div></li>
         <li><div class="step-txt">กด <b>ติดตั้ง</b> ในกล่องที่เด้งขึ้นมา
           <div class="mock"><div class="row" style="justify-content:flex-start"><img class="appic" src="icon-180.png" alt=""><span><b>ติดตั้งแอปไหม</b><br>OEE โรงงาน</span></div><div class="row"><span></span><span><span class="blue" style="margin-right:18px">ยกเลิก</span><span class="blue">ติดตั้ง</span></span></div></div></div></li>
+        <li><div class="step-txt"><b>หน้านี้จะหายไป หรือเปิดเป็นแอปเอง: เป็นเรื่องปกติ</b><br>Chrome จะติดตั้งต่อเบื้องหลัง ดูความคืบหน้าได้ที่<b>แถบแจ้งเตือน</b>ด้านบน
+          <div class="mock"><div class="row" style="justify-content:flex-start"><img class="appic" src="icon-180.png" alt=""><span><b>Chrome · OEE</b><br>กำลังติดตั้ง OEE...</span></div></div></div></li>
+        <li><div class="step-txt">รอประมาณ <b>1 นาที</b> ไอคอน <b>OEE</b> จะขึ้นบนหน้าจอหลัก (บางรุ่นอยู่ใน<b>หน้ารวมแอป</b>)<br><span style="color:var(--muted);font-size:13px">⚠️ ระหว่างรอ อย่ากดติดตั้งซ้ำ ไม่งั้นจะได้แอป 2 อัน</span></div></li>
       </ol>
       <p class="ok" style="margin:14px 0 0">✅ ไอคอน <b>OEE</b> จะอยู่บนหน้าจอหลัก กดแล้วเปิดเต็มจอเหมือนแอป และรับแจ้งเตือนได้</p>
       <details id="andManual"><summary>กดปุ่มแล้วไม่มีอะไรขึ้น?</summary>
