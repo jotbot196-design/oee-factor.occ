@@ -3,6 +3,9 @@ name: Build APK
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -63,6 +66,8 @@ jobs:
         run: |
           mkdir -p out
           cp android/app/build/outputs/apk/${{ steps.sign.outputs.dir }}/*.apk "out/OEE-v1.0.${{ github.run_number }}.apk"
+          # ชื่อคงที่ สำหรับลิงก์ดาวน์โหลดในหน้าติดตั้ง (releases/latest/download/OEE.apk)
+          cp "out/OEE-v1.0.${{ github.run_number }}.apk" out/OEE.apk
           ls -la out
 
       - uses: actions/upload-artifact@v4

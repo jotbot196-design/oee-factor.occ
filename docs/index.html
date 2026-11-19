@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ติดตั้งแอป OEE</title>
+<link rel="icon" href="icon-180.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#12181D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#12181D;--panel:#1B232A;--panel2:#222C34;--line:#2C3841;--text:#E9EEF2;--muted:#8FA1AC;--amber:#FFB020;--green:#4CAF6D;--red:#E5484D}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans Thai",system-ui,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+  .wrap{max-width:520px;margin:0 auto;padding:28px 18px calc(40px + env(safe-area-inset-bottom))}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  header img{width:64px;height:64px;border-radius:15px}
+  h1{font-size:22px;margin:0;line-height:1.3}
+  header p{margin:2px 0 0;color:var(--muted);font-size:14px}
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:18px}
+  .seg button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-weight:600;padding:10px;border-radius:10px}
+  .seg button[aria-pressed="true"]{background:var(--panel2);color:var(--text)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px}
+  .btn{display:block;text-align:center;background:var(--amber);color:#12181D;text-decoration:none;font-weight:700;font-size:18px;padding:16px;border-radius:14px;border:0;width:100%;font-family:inherit}
+  .btn:active{transform:scale(.98)}
+  .btn.ghost{background:var(--panel2);color:var(--text);font-size:15px;padding:12px}
+  .hint{color:var(--muted);font-size:13px;text-align:center;margin:10px 0 0}
+  h2{font-size:17px;margin:0 0 14px}
+  ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+  ol.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+  ol.steps li:first-child{border-top:0;padding-top:0}
+  ol.steps li::before{content:counter(s);width:30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--amber);color:var(--amber);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+  ol.steps b{color:var(--text)}
+  .step-txt{font-size:15px}
+  .mock{margin-top:8px;background:#f2f2f7;color:#111;border-radius:12px;padding:10px 12px;font-size:13px;font-family:-apple-system,system-ui,sans-serif}
+  .mock .row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+  .mock .row+.row{border-top:1px solid #d8d8de}
+  .mock .blue{color:#007aff;font-weight:600}
+  .mock .redt{color:#d70015;font-weight:600}
+  .mock .title{font-weight:700;text-align:center;padding-bottom:6px}
+  .warn{background:rgba(229,72,77,.1);border:1px solid rgba(229,72,77,.35);border-radius:14px;padding:14px;font-size:14px;margin-bottom:16px}
+  .ok{background:rgba(76,175,109,.1);border:1px solid rgba(76,175,109,.35);border-radius:14px;padding:12px 14px;font-size:14px}
+  details{margin-top:4px}
+  summary{cursor:pointer;color:var(--muted);font-size:14px;padding:6px 0}
+  details p,details li{font-size:14px;color:var(--muted)}
+  .qr{display:flex;gap:16px;align-items:center}
+  .qr img{width:140px;height:140px;border-radius:12px;background:#fff;padding:6px}
+  .qr p{margin:0;font-size:14px;color:var(--muted)}
+  .hidden{display:none !important}
+  code{background:var(--panel2);padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="icon-180.png" alt="">
+    <div>
+      <h1>ติดตั้งแอป OEE</h1>
+      <p>ระบบบันทึก OEE · ของเสีย · แจ้งซ่อม · สต็อก</p>
+    </div>
+  </header>
+
+  <!-- เปิดผ่านแอปอื่นบน iPhone (Facebook, Messenger ฯลฯ) -->
+  <div id="inapp" class="warn hidden">
+    <b>⚠️ ต้องเปิดหน้านี้ใน Safari ก่อน</b><br>
+    แตะปุ่ม <b>•••</b> หรือ <b>แชร์</b> มุมจอ แล้วเลือก <b>"เปิดใน Safari"</b><br>
+    หรือคัดลอกลิงก์ไปวางใน Safari
+    <button class="btn ghost" style="margin-top:10px" onclick="copyLink(this)">📋 คัดลอกลิงก์</button>
+  </div>
+
+  <div class="seg" role="group" aria-label="เลือกมือถือ">
+    <button id="tab-ios" aria-pressed="false" onclick="show('ios')">🍎 iPhone / iPad</button>
+    <button id="tab-android" aria-pressed="false" onclick="show('android')">🤖 Android</button>
+  </div>
+
+  <!-- ===== iPhone ===== -->
+  <section id="ios" class="hidden">
+    <div class="card">
+      <a class="btn" href="OEE.mobileconfig" id="iosBtn">ติดตั้งบน iPhone</a>
+      <p class="hint">ทำครั้งเดียว ใช้เวลาไม่ถึง 1 นาที</p>
+    </div>
+
+    <div class="card">
+      <h2>ขั้นตอนหลังกดปุ่ม</h2>
+      <ol class="steps">
+        <li><div class="step-txt">กด <b>อนุญาต</b> ตอนถามว่าจะดาวน์โหลดโปรไฟล์ แล้วกด <b>ปิด</b>
+          <div class="mock"><div class="row"><span>อนุญาตให้ดาวน์โหลดโปรไฟล์?</span></div><div class="row"><span class="blue">ไม่อนุญาต</span><span class="blue">อนุญาต</span></div></div>
+        </div></li>
+        <li><div class="step-txt">เปิดแอป <b>ตั้งค่า</b> ⚙️ แล้วแตะแถบ <b>"ดาวน์โหลดโปรไฟล์แล้ว"</b> ด้านบนสุด
+          <div class="mock"><div class="row"><span>ดาวน์โหลดโปรไฟล์แล้ว</span><span style="color:#8e8e93">›</span></div></div>
+          <details><summary>ไม่เห็นแถบนี้?</summary><p>ไปที่ ตั้งค่า → ทั่วไป → การจัดการ VPN และอุปกรณ์ → แตะ "OEE โรงงาน"</p></details>
+        </div></li>
+        <li><div class="step-txt">กด <b>ติดตั้ง</b> มุมขวาบน แล้วใส่<b>รหัสปลดล็อกเครื่อง</b>
+          <div class="mock"><div class="row"><span class="blue">ยกเลิก</span><span class="title">ติดตั้งโปรไฟล์</span><span class="blue">ติดตั้ง</span></div><div class="row"><span>OEE โรงงาน</span><span class="redt">ไม่ได้รับการตรวจสอบ</span></div></div>
+        </div></li>
+        <li><div class="step-txt">ถ้าขึ้นคำเตือนสีแดง กด <b>ติดตั้ง</b> อีกครั้ง แล้วกด <b>เสร็จสิ้น</b>
+          <details><summary>คำเตือน "ไม่ได้รับการตรวจสอบ" ปลอดภัยไหม?</summary>
+            <p>ปลอดภัยครับ คำเตือนนี้ขึ้นเพราะโปรไฟล์ไม่ได้ซื้อใบรับรองจากบริษัทภายนอก โปรไฟล์นี้<b>สร้างไอคอน OEE อย่างเดียว</b> อ่านข้อมูล ดูรูป หรือควบคุมเครื่องไม่ได้</p>
+          </details>
+        </div></li>
+        <li><div class="step-txt">กลับไปหน้าจอโฮม จะเห็นไอคอน <b>OEE</b> กดแล้วเปิดเต็มจอ ✅</div></li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>วิธีลบไอคอน OEE ออก</summary>
+        <p>ตั้งค่า → ทั่วไป → การจัดการ VPN และอุปกรณ์ → OEE โรงงาน → ลบโปรไฟล์</p>
+      </details>
+      <details>
+        <summary>ไม่อยากติดตั้งโปรไฟล์? ใช้วิธี "เพิ่มไปยังหน้าจอโฮม" แทน</summary>
+        <ol>
+          <li>เปิด <code>oee-web.sasatornua.workers.dev</code> ใน Safari</li>
+          <li>กดปุ่ม <b>แชร์</b> (สี่เหลี่ยมมีลูกศรขึ้น)</li>
+          <li>เลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b> → <b>เพิ่ม</b></li>
+        </ol>
+        <a class="btn ghost" href="https://oee-web.sasatornua.workers.dev/">เปิดเว็บ OEE</a>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== Android ===== -->
+  <section id="android" class="hidden">
+    <div class="card">
+      <a class="btn" href="https://github.com/jotbot196-design/oee-factor.occ/releases/latest/download/OEE.apk">ดาวน์โหลดแอป Android</a>
+      <p class="hint">ไฟล์ OEE.apk ขนาดประมาณ 4 MB</p>
+    </div>
+    <div class="card">
+      <h2>ขั้นตอนหลังกดปุ่ม</h2>
+      <ol class="steps">
+        <li><div class="step-txt">รอดาวน์โหลดเสร็จ แล้วแตะไฟล์ <b>OEE.apk</b> (หรือเปิดจากแถบแจ้งเตือน)</div></li>
+        <li><div class="step-txt">ครั้งแรกจะถามเรื่อง <b>"ติดตั้งแอปที่ไม่รู้จัก"</b> → กด <b>การตั้งค่า</b> → เปิด <b>อนุญาตจากแหล่งที่มานี้</b> → กดย้อนกลับ</div></li>
+        <li><div class="step-txt">กด <b>ติดตั้ง</b> แล้วกด <b>เปิด</b> ✅</div></li>
+      </ol>
+      <details><summary>Google Play Protect เตือน?</summary><p>กด "รายละเอียดเพิ่มเติม" → "ติดตั้งต่อไป" เพราะแอปนี้ไม่ได้มาจาก Play Store จึงมีคำเตือน</p></details>
+    </div>
+  </section>
+
+  <!-- ===== คอมพิวเตอร์ ===== -->
+  <section id="desktop" class="card hidden">
+    <div class="qr">
+      <img src="qr.png" alt="QR Code หน้าติดตั้ง">
+      <p>สแกน QR Code นี้ด้วย<b style="color:var(--text)">กล้องมือถือ</b> เพื่อเปิดหน้าติดตั้ง<br><br>ใช้ได้ทั้ง iPhone และ Android</p>
+    </div>
+  </section>
+
+  <div class="ok">✅ ติดตั้งแล้วไม่ต้องอัปเดตเอง ระบบ OEE ปรับปรุงเมื่อไร ทุกเครื่องเห็นของใหม่ทันที</div>
+</div>
+
+<script>
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+
+  // เปิดผ่าน LINE: สั่งให้ LINE เปิดหน้านี้ในเบราว์เซอร์ของเครื่อง (Safari / Chrome)
+  if (/\bLine\//i.test(ua) && !/openExternalBrowser=1/.test(location.search)) {
+    location.replace(location.pathname + '?openExternalBrowser=1' + location.hash);
+  }
+  // iPhone ที่ไม่ใช่ Safari (Facebook, Messenger, Instagram, Chrome ฯลฯ) ติดตั้งโปรไฟล์ไม่ได้
+  if (isIOS && /FBAN|FBAV|Instagram|Messenger|CriOS|FxiOS|EdgiOS|GSA\/|Line\//i.test(ua)) {
+    document.getElementById('inapp').classList.remove('hidden');
+  }
+
+  function show(which) {
+    ['ios', 'android'].forEach(function (k) {
+      document.getElementById(k).classList.toggle('hidden', k !== which);
+      document.getElementById('tab-' + k).setAttribute('aria-pressed', k === which ? 'true' : 'false');
+    });
+  }
+  show(isAndroid ? 'android' : 'ios');
+  if (!isIOS && !isAndroid) document.getElementById('desktop').classList.remove('hidden');
+
+  function copyLink(btn) {
+    var url = location.origin + location.pathname;
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
+      .then(function () { btn.textContent = '✅ คัดลอกแล้ว วางใน Safari ได้เลย'; })
+      .catch(function () { prompt('คัดลอกลิงก์นี้ไปวางใน Safari', url); });
+  }
+</script>
+</body>
+</html>
