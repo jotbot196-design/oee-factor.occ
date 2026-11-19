@@ -3,18 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>ติดตั้งแอป OEE</title>
+<title>OEE</title>
 <meta name="description" content="ติดตั้งแอป OEE บน iPhone และ Android">
-<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OEE">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#12181D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <style>
   :root{--bg:#12181D;--panel:#1B232A;--panel2:#222C34;--line:#2C3841;--text:#E9EEF2;--muted:#8FA1AC;--amber:#FFB020;--green:#4CAF6D;--red:#E5484D}
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans Thai",system-ui,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
-  .wrap{max-width:520px;margin:0 auto;padding:28px 18px calc(40px + env(safe-area-inset-bottom))}
+  .hidden{display:none !important}
+
+  /* ---------- โหมดแอป (เปิดจากไอคอนหน้าจอโฮม) ---------- */
+  #appView{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
+  #appFrame{flex:1;width:100%;border:0;background:var(--bg)}
+  #pushBar{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--line);font-size:14px}
+  #pushBar span{flex:1}
+  #pushBar button{border:0;border-radius:10px;padding:8px 12px;font:inherit;font-weight:700}
+  #pushBar .go{background:var(--amber);color:#12181D}
+  #pushBar .x{background:none;color:var(--muted);padding:8px}
+
+  /* ---------- โหมดหน้าติดตั้ง ---------- */
+  .wrap{max-width:520px;margin:0 auto;padding:28px 18px calc(150px + env(safe-area-inset-bottom))}
   header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
   header img{width:64px;height:64px;border-radius:15px}
   h1{font-size:22px;margin:0;line-height:1.3}
@@ -24,22 +42,20 @@
   .seg button[aria-pressed="true"]{background:var(--panel2);color:var(--text)}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px}
   .btn{display:block;text-align:center;background:var(--amber);color:#12181D;text-decoration:none;font-weight:700;font-size:18px;padding:16px;border-radius:14px;border:0;width:100%;font-family:inherit}
-  .btn:active{transform:scale(.98)}
-  .btn.ghost{background:var(--panel2);color:var(--text);font-size:15px;padding:12px}
+  .btn.ghost{background:var(--panel2);color:var(--text);font-size:15px;padding:12px;margin-top:10px}
   .hint{color:var(--muted);font-size:13px;text-align:center;margin:10px 0 0}
   h2{font-size:17px;margin:0 0 14px}
   ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
   ol.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
   ol.steps li:first-child{border-top:0;padding-top:0}
   ol.steps li::before{content:counter(s);width:30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--amber);color:var(--amber);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
-  ol.steps b{color:var(--text)}
   .step-txt{font-size:15px}
-  .mock{margin-top:8px;background:#f2f2f7;color:#111;border-radius:12px;padding:10px 12px;font-size:13px;font-family:-apple-system,system-ui,sans-serif}
-  .mock .row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+  .ico{display:inline-flex;vertical-align:-5px;width:22px;height:22px;color:#0a84ff}
+  .mock{margin-top:8px;background:#f2f2f7;color:#111;border-radius:12px;padding:8px 12px;font-size:13px;font-family:-apple-system,system-ui,sans-serif}
+  .mock .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0}
   .mock .row+.row{border-top:1px solid #d8d8de}
   .mock .blue{color:#007aff;font-weight:600}
-  .mock .redt{color:#d70015;font-weight:600}
-  .mock .title{font-weight:700;text-align:center;padding-bottom:6px}
+  .mock .appic{width:28px;height:28px;border-radius:7px}
   .warn{background:rgba(229,72,77,.1);border:1px solid rgba(229,72,77,.35);border-radius:14px;padding:14px;font-size:14px;margin-bottom:16px}
   .ok{background:rgba(76,175,109,.1);border:1px solid rgba(76,175,109,.35);border-radius:14px;padding:12px 14px;font-size:14px}
   details{margin-top:4px}
@@ -48,11 +64,34 @@
   .qr{display:flex;gap:16px;align-items:center}
   .qr img{width:140px;height:140px;border-radius:12px;background:#fff;padding:6px}
   .qr p{margin:0;font-size:14px;color:var(--muted)}
-  .hidden{display:none !important}
-  code{background:var(--panel2);padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+
+  /* กล่องแนะนำเด้งเอง ชี้ไปที่ปุ่มแชร์ของ Safari */
+  #coach{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:10;background:#fff;color:#111;border-radius:16px;padding:14px 16px 12px;box-shadow:0 10px 40px rgba(0,0,0,.5);font-family:-apple-system,"IBM Plex Sans Thai",system-ui,sans-serif;max-width:480px;margin:0 auto}
+  #coach.top{bottom:auto;top:calc(14px + env(safe-area-inset-top))}
+  #coach b{font-size:16px}
+  #coach p{margin:6px 0 10px;font-size:14px;line-height:1.5}
+  #coach .row{display:flex;gap:8px}
+  #coach button{flex:1;border:0;border-radius:10px;padding:9px;font:inherit;font-weight:600;background:#eef0f3;color:#111}
+  #coach::after{content:"";position:absolute;left:50%;bottom:-9px;margin-left:-9px;border:9px solid transparent;border-bottom:0;border-top-color:#fff}
+  #coach.top::after{bottom:auto;top:-9px;left:auto;right:28px;border:9px solid transparent;border-top:0;border-bottom-color:#fff}
+  #coachArrow{position:fixed;left:50%;bottom:calc(-4px + env(safe-area-inset-bottom));margin-left:-14px;font-size:28px;z-index:11;animation:bob 1s ease-in-out infinite;color:var(--amber);text-shadow:0 2px 6px rgba(0,0,0,.6)}
+  @keyframes bob{50%{transform:translateY(6px)}}
 </style>
 </head>
 <body>
+
+<!-- ====================== โหมดแอป ====================== -->
+<div id="appView" class="hidden">
+  <div id="pushBar" class="hidden">
+    <span>🔔 รับแจ้งเตือนเครื่องเสีย / สต็อกต่ำ</span>
+    <button class="go" onclick="enablePush()">เปิดการแจ้งเตือน</button>
+    <button class="x" onclick="hidePushBar(true)" aria-label="ปิด">✕</button>
+  </div>
+  <iframe id="appFrame" title="OEE" allow="camera; clipboard-read; clipboard-write; fullscreen; web-share"></iframe>
+</div>
+
+<!-- ==================== โหมดหน้าติดตั้ง ==================== -->
+<div id="installView" class="hidden">
 <div class="wrap">
   <header>
     <img src="icon-180.png" alt="">
@@ -62,12 +101,10 @@
     </div>
   </header>
 
-  <!-- เปิดผ่านแอปอื่นบน iPhone (Facebook, Messenger ฯลฯ) -->
   <div id="inapp" class="warn hidden">
     <b>⚠️ ต้องเปิดหน้านี้ใน Safari ก่อน</b><br>
-    แตะปุ่ม <b>•••</b> หรือ <b>แชร์</b> มุมจอ แล้วเลือก <b>"เปิดใน Safari"</b><br>
-    หรือคัดลอกลิงก์ไปวางใน Safari
-    <button class="btn ghost" style="margin-top:10px" onclick="copyLink(this)">📋 คัดลอกลิงก์</button>
+    แตะปุ่ม <b>•••</b> หรือ <b>แชร์</b> มุมจอ แล้วเลือก <b>"เปิดใน Safari"</b> หรือคัดลอกลิงก์ไปวางใน Safari
+    <button class="btn ghost" onclick="copyLink(this)">📋 คัดลอกลิงก์</button>
   </div>
 
   <div class="seg" role="group" aria-label="เลือกมือถือ">
@@ -78,45 +115,38 @@
   <!-- ===== iPhone ===== -->
   <section id="ios" class="hidden">
     <div class="card">
-      <a class="btn" href="OEE.mobileconfig" id="iosBtn">ติดตั้งบน iPhone</a>
-      <p class="hint">ทำครั้งเดียว ใช้เวลาไม่ถึง 1 นาที</p>
+      <h2>ติดตั้งบน iPhone (4 ขั้น)</h2>
+      <ol class="steps">
+        <li><div class="step-txt">เปิดหน้านี้ใน <b>Safari</b> (สแกน QR ด้วยกล้อง iPhone จะเปิด Safari ให้เอง)</div></li>
+        <li><div class="step-txt">กดปุ่ม <b>แชร์</b>
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8"/></svg></span>
+          ที่แถบด้านล่างของ Safari<br><span style="color:var(--muted);font-size:13px">ถ้าไม่เห็น ให้กด <b>•••</b> ก่อน แล้วเลือก <b>แชร์</b></span></div></li>
+        <li><div class="step-txt">เลื่อนลง แล้วกด <b>"เพิ่มไปยังหน้าจอโฮม"</b>
+          <div class="mock"><div class="row"><span>เพิ่มไปยังหน้าจอโฮม</span><span style="font-size:18px">⊞</span></div></div></div></li>
+        <li><div class="step-txt">กด <b>เพิ่ม</b> มุมขวาบน
+          <div class="mock"><div class="row"><span class="blue">ยกเลิก</span><b>เพิ่มไปยังหน้าจอโฮม</b><span class="blue">เพิ่ม</span></div><div class="row" style="justify-content:flex-start"><img class="appic" src="icon-180.png" alt=""><span>OEE</span></div></div></div></li>
+      </ol>
+      <p class="ok" style="margin:14px 0 0">✅ จะได้ไอคอน <b>OEE</b> บนหน้าจอโฮม กดแล้วเปิดเต็มจอเหมือนแอป</p>
     </div>
 
     <div class="card">
-      <h2>ขั้นตอนหลังกดปุ่ม</h2>
-      <ol class="steps">
-        <li><div class="step-txt">กด <b>อนุญาต</b> ตอนถามว่าจะดาวน์โหลดโปรไฟล์ แล้วกด <b>ปิด</b>
-          <div class="mock"><div class="row"><span>อนุญาตให้ดาวน์โหลดโปรไฟล์?</span></div><div class="row"><span class="blue">ไม่อนุญาต</span><span class="blue">อนุญาต</span></div></div>
-        </div></li>
-        <li><div class="step-txt">เปิดแอป <b>ตั้งค่า</b> ⚙️ แล้วแตะแถบ <b>"ดาวน์โหลดโปรไฟล์แล้ว"</b> ด้านบนสุด
-          <div class="mock"><div class="row"><span>ดาวน์โหลดโปรไฟล์แล้ว</span><span style="color:#8e8e93">›</span></div></div>
-          <details><summary>ไม่เห็นแถบนี้?</summary><p>ไปที่ ตั้งค่า → ทั่วไป → การจัดการ VPN และอุปกรณ์ → แตะ "OEE โรงงาน"</p></details>
-        </div></li>
-        <li><div class="step-txt">กด <b>ติดตั้ง</b> มุมขวาบน แล้วใส่<b>รหัสปลดล็อกเครื่อง</b>
-          <div class="mock"><div class="row"><span class="blue">ยกเลิก</span><span class="title">ติดตั้งโปรไฟล์</span><span class="blue">ติดตั้ง</span></div><div class="row"><span>OEE โรงงาน</span><span class="redt">ไม่ได้รับการตรวจสอบ</span></div></div>
-        </div></li>
-        <li><div class="step-txt">ถ้าขึ้นคำเตือนสีแดง กด <b>ติดตั้ง</b> อีกครั้ง แล้วกด <b>เสร็จสิ้น</b>
-          <details><summary>คำเตือน "ไม่ได้รับการตรวจสอบ" ปลอดภัยไหม?</summary>
-            <p>ปลอดภัยครับ คำเตือนนี้ขึ้นเพราะโปรไฟล์ไม่ได้ซื้อใบรับรองจากบริษัทภายนอก โปรไฟล์นี้<b>สร้างไอคอน OEE อย่างเดียว</b> อ่านข้อมูล ดูรูป หรือควบคุมเครื่องไม่ได้</p>
-          </details>
-        </div></li>
-        <li><div class="step-txt">กลับไปหน้าจอโฮม จะเห็นไอคอน <b>OEE</b> กดแล้วเปิดเต็มจอ ✅</div></li>
-      </ol>
+      <a class="btn ghost" id="useNowIos" href="#" style="margin-top:0">ใช้เลย ไม่ต้องติดตั้ง</a>
+      <p class="hint">เปิดระบบ OEE ใน Safari ทันที (ไม่มีไอคอน ไม่รับแจ้งเตือน)</p>
     </div>
 
     <div class="card">
       <details>
-        <summary>วิธีลบไอคอน OEE ออก</summary>
-        <p>ตั้งค่า → ทั่วไป → การจัดการ VPN และอุปกรณ์ → OEE โรงงาน → ลบโปรไฟล์</p>
+        <summary>ข้อควรรู้</summary>
+        <ul>
+          <li>ต้องใช้ iOS 16.4 ขึ้นไป ถึงจะรับการแจ้งเตือนได้ (ตั้งค่า → ทั่วไป → เกี่ยวกับ → ดูเวอร์ชัน iOS)</li>
+          <li>ครั้งแรกที่เปิดจากไอคอน ต้องล็อกอินผู้ดูแลใหม่ 1 ครั้ง</li>
+          <li>ลบแอป: กดไอคอน OEE ค้าง → ลบแอป</li>
+        </ul>
       </details>
       <details>
-        <summary>ไม่อยากติดตั้งโปรไฟล์? ใช้วิธี "เพิ่มไปยังหน้าจอโฮม" แทน</summary>
-        <ol>
-          <li>เปิด <code>oee-web.sasatornua.workers.dev</code> ใน Safari</li>
-          <li>กดปุ่ม <b>แชร์</b> (สี่เหลี่ยมมีลูกศรขึ้น)</li>
-          <li>เลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b> → <b>เพิ่ม</b></li>
-        </ol>
-        <a class="btn ghost" href="https://oee-web.sasatornua.workers.dev/">เปิดเว็บ OEE</a>
+        <summary>อีกวิธี: ติดตั้งผ่านโปรไฟล์ (กรณีวิธีด้านบนใช้ไม่ได้)</summary>
+        <p>กดปุ่มด้านล่างใน Safari → อนุญาต → เปิดแอป <b>ตั้งค่า</b> → แตะ "ดาวน์โหลดโปรไฟล์แล้ว" → ติดตั้ง → ใส่รหัสเครื่อง → ติดตั้ง → เสร็จสิ้น<br>(วิธีนี้อาจรับการแจ้งเตือนไม่ได้)</p>
+        <a class="btn ghost" href="OEE.mobileconfig">ดาวน์โหลดโปรไฟล์ OEE</a>
       </details>
     </div>
   </section>
@@ -124,7 +154,7 @@
   <!-- ===== Android ===== -->
   <section id="android" class="hidden">
     <div class="card">
-      <a class="btn" href="https://github.com/jotbot196-design/oee-factor.occ/releases/latest/download/OEE.apk">ดาวน์โหลดแอป Android</a>
+      <a class="btn" id="apkBtn" href="#">ดาวน์โหลดแอป Android</a>
       <p class="hint">ไฟล์ OEE.apk ขนาดประมาณ 4 MB</p>
     </div>
     <div class="card">
@@ -136,48 +166,155 @@
       </ol>
       <details><summary>Google Play Protect เตือน?</summary><p>กด "รายละเอียดเพิ่มเติม" → "ติดตั้งต่อไป" เพราะแอปนี้ไม่ได้มาจาก Play Store จึงมีคำเตือน</p></details>
     </div>
+    <div class="card">
+      <a class="btn ghost" id="useNowAndroid" href="#" style="margin-top:0">ใช้เลย ไม่ต้องติดตั้ง</a>
+    </div>
   </section>
 
   <!-- ===== คอมพิวเตอร์ ===== -->
   <section id="desktop" class="card hidden">
     <div class="qr">
       <img src="qr.png" alt="QR Code หน้าติดตั้ง">
-      <p>สแกน QR Code นี้ด้วย<b style="color:var(--text)">กล้องมือถือ</b> เพื่อเปิดหน้าติดตั้ง<br><br>ใช้ได้ทั้ง iPhone และ Android</p>
+      <p>สแกน QR Code นี้ด้วย<b style="color:var(--text)">กล้องมือถือ</b> เพื่อติดตั้งแอป<br><br>ใช้ได้ทั้ง iPhone และ Android</p>
     </div>
   </section>
 
-  <div class="ok">✅ ติดตั้งแล้วไม่ต้องอัปเดตเอง ระบบ OEE ปรับปรุงเมื่อไร ทุกเครื่องเห็นของใหม่ทันที</div>
+  <div class="ok">✅ ติดตั้งครั้งเดียว ไม่ต้องอัปเดตเอง ระบบ OEE ปรับปรุงเมื่อไร ทุกเครื่องเห็นของใหม่ทันที</div>
+</div>
+
+<!-- กล่องแนะนำ (iPhone Safari) -->
+<div id="coach" class="hidden" role="dialog" aria-label="วิธีติดตั้ง">
+  <b>📲 ติดตั้งแอป OEE</b>
+  <p>กดปุ่ม <b>แชร์</b> <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8"/></svg></span> <span id="coachWhere">ด้านล่าง</span> แล้วเลือก <b>"เพิ่มไปยังหน้าจอโฮม"</b> → <b>เพิ่ม</b></p>
+  <div class="row"><button onclick="closeCoach()">ไว้ทีหลัง</button><button onclick="closeCoach(); document.getElementById('ios').scrollIntoView({behavior:'smooth'})">ดูขั้นตอน</button></div>
+</div>
+<div id="coachArrow" class="hidden">⬇</div>
 </div>
 
 <script>
+(function () {
+  var C = window.OEE_CONFIG || {};
   var ua = navigator.userAgent || '';
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isIPad = /iPad/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
+  var standalone = window.navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  var params = new URLSearchParams(location.search);
 
-  // เปิดผ่าน LINE: สั่งให้ LINE เปิดหน้านี้ในเบราว์เซอร์ของเครื่อง (Safari / Chrome)
-  if (/\bLine\//i.test(ua) && !/openExternalBrowser=1/.test(location.search)) {
-    location.replace(location.pathname + '?openExternalBrowser=1' + location.hash);
-  }
-  // iPhone ที่ไม่ใช่ Safari (Facebook, Messenger, Instagram, Chrome ฯลฯ) ติดตั้งโปรไฟล์ไม่ได้
-  if (isIOS && /FBAN|FBAV|Instagram|Messenger|CriOS|FxiOS|EdgiOS|GSA\/|Line\//i.test(ua)) {
-    document.getElementById('inapp').classList.remove('hidden');
-  }
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 
-  function show(which) {
+  window.hidePushBar = function (snooze) {
+    document.getElementById('pushBar').classList.add('hidden');
+    if (snooze) store('oee-push-hide', String(Date.now() + 7 * 24 * 3600 * 1000));
+  };
+  window.enablePush = function () {
+    Notification.requestPermission().then(function (p) {
+      hidePushBar(false);
+      if (p === 'granted') return subscribe();
+    }).catch(function () { hidePushBar(false); });
+  };
+
+  if (standalone || params.get('mode') === 'app') { startApp(); return; }
+
+  // ---------------- หน้าติดตั้ง ----------------
+  document.getElementById('installView').classList.remove('hidden');
+  document.title = 'ติดตั้งแอป OEE';
+  document.getElementById('apkBtn').href = C.apkUrl;
+  document.getElementById('useNowIos').href = C.appUrl;
+  document.getElementById('useNowAndroid').href = C.appUrl;
+
+  // เปิดผ่าน LINE: ให้ LINE เปิดในเบราว์เซอร์ของเครื่อง
+  if (/\bLine\//i.test(ua) && !params.has('openExternalBrowser')) {
+    params.set('openExternalBrowser', '1');
+    location.replace(location.pathname + '?' + params.toString());
+    return;
+  }
+  var inApp = /FBAN|FBAV|Instagram|Messenger|\bLine\/|GSA\//i.test(ua);
+  if (isIOS && inApp) document.getElementById('inapp').classList.remove('hidden');
+
+  window.show = function (which) {
     ['ios', 'android'].forEach(function (k) {
       document.getElementById(k).classList.toggle('hidden', k !== which);
       document.getElementById('tab-' + k).setAttribute('aria-pressed', k === which ? 'true' : 'false');
     });
-  }
+  };
   show(isAndroid ? 'android' : 'ios');
   if (!isIOS && !isAndroid) document.getElementById('desktop').classList.remove('hidden');
 
-  function copyLink(btn) {
+  // กล่องแนะนำเด้งเอง: เฉพาะ iPhone/iPad ที่ยังไม่ได้ติดตั้ง และไม่ได้กด "ไว้ทีหลัง" ใน 3 วัน
+  var snoozed = +(store('oee-coach-snooze') || 0) > Date.now();
+  if (isIOS && !inApp && !snoozed) {
+    setTimeout(function () {
+      var coach = document.getElementById('coach');
+      coach.classList.remove('hidden');
+      if (isIPad) { coach.classList.add('top'); document.getElementById('coachWhere').textContent = 'มุมขวาบน'; }
+      else document.getElementById('coachArrow').classList.remove('hidden');
+    }, 1200);
+  }
+  window.closeCoach = function () {
+    document.getElementById('coach').classList.add('hidden');
+    document.getElementById('coachArrow').classList.add('hidden');
+    store('oee-coach-snooze', String(Date.now() + 3 * 24 * 3600 * 1000));
+  };
+
+  window.copyLink = function (btn) {
     var url = location.origin + location.pathname;
     (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
       .then(function () { btn.textContent = '✅ คัดลอกแล้ว วางใน Safari ได้เลย'; })
       .catch(function () { prompt('คัดลอกลิงก์นี้ไปวางใน Safari', url); });
+  };
+
+  // ---------------- โหมดแอป ----------------
+  function startApp() {
+    document.getElementById('appView').classList.remove('hidden');
+    var frame = document.getElementById('appFrame');
+    frame.src = appUrlFor(params.get('page'));
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.addEventListener('message', function (e) {
+        if (e.data && e.data.type === 'open-page') frame.src = appUrlFor(e.data.page);
+      });
+    }
+
+    // แถบ "เปิดการแจ้งเตือน": แสดงเมื่อระบบแจ้งเตือนพร้อม (ตั้งค่าใน config.js) และยังไม่ได้อนุญาต
+    var pushReady = C.pushPublicKey && C.pushSubscribeUrl && 'Notification' in window && 'PushManager' in window;
+    var hiddenUntil = +(store('oee-push-hide') || 0);
+    if (pushReady && Notification.permission === 'default' && hiddenUntil < Date.now()) {
+      document.getElementById('pushBar').classList.remove('hidden');
+    }
+    if (pushReady && Notification.permission === 'granted') subscribe().catch(function () {});
   }
+
+  function appUrlFor(page) {
+    var u = new URL(C.appUrl);
+    if (page) u.searchParams.set('page', page);
+    return u.href;
+  }
+
+  function subscribe() {
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (sub) {
+        return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(C.pushPublicKey) });
+      });
+    }).then(function (sub) {
+      return fetch(C.pushSubscribeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub, platform: isIOS ? 'ios' : (isAndroid ? 'android' : 'web') })
+      });
+    });
+  }
+
+  function b64ToBytes(b64) {
+    var pad = '='.repeat((4 - b64.length % 4) % 4);
+    var raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    var out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+})();
 </script>
 </body>
 </html>

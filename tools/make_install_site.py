@@ -62,6 +62,10 @@ profile = {
 with open(os.path.join(DOCS, "OEE.mobileconfig"), "wb") as f:
     plistlib.dump(profile, f, fmt=plistlib.FMT_XML)
 
+# ไอคอนสำหรับแอปหน้าจอโฮม (manifest)
+for size in (192, 512):
+    glyph(size, 1.0, BG).convert("RGB").save(os.path.join(DOCS, f"icon-{size}.png"), optimize=True)
+
 segno.make(PAGE_URL, error="m").save(os.path.join(DOCS, "qr.png"), scale=12, border=2,
                                      dark="#12181D", light="#FFFFFF")
 print("ok:", os.listdir(DOCS))
