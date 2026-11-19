@@ -103,7 +103,7 @@
   </div>
   <div id="testBar" class="hidden">
     <span>🧪 ทดสอบการแจ้งเตือน</span>
-    <button class="go" onclick="testPush()">ทดสอบ</button>
+    <button class="go" onclick="testPush()">เปิดรับแจ้งเตือน</button>
     <button class="x" onclick="document.getElementById('testBar').classList.add('hidden')" aria-label="ปิด">✕</button>
   </div>
   <div id="testModal" class="hidden">
@@ -344,17 +344,12 @@
         return;
       }
       return navigator.serviceWorker.ready.then(function (reg) {
-        // ขั้นที่ 1: แจ้งเตือนจากในเครื่อง
-        return reg.showNotification('OEE ทดสอบ (1/2)', {
-          body: 'ถ้าเห็นข้อความนี้ แปลว่าแจ้งเตือนในเครื่องใช้ได้ ✅', icon: 'icon-192.png', tag: 'oee-test-local'
-        }).then(function () {
-          // ขั้นที่ 2: สมัครรับแจ้งเตือนจากเซิร์ฟเวอร์ แล้วให้รหัสไว้ส่งให้ Claude
-          return reg.pushManager.getSubscription().then(function (sub) {
-            return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(C.testPushPublicKey) });
-          });
+        // สมัครรับแจ้งเตือนอย่างเดียว ยังไม่แสดงแจ้งเตือน (รอผู้ดูแลสั่งส่ง)
+        return reg.pushManager.getSubscription().then(function (sub) {
+          return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(C.testPushPublicKey) });
         }).then(function (sub) {
           var code = 'OEETEST:' + btoa(JSON.stringify(sub));
-          modal('✅ ขั้นที่ 1 ผ่าน', 'ควรเห็นแจ้งเตือน "OEE ทดสอบ (1/2)" ขึ้นแล้ว<br><br><b>ขั้นที่ 2:</b> คัดลอกรหัสด้านล่าง แล้ววางส่งให้ Claude ในแชท Claude จะส่งแจ้งเตือนจากเซิร์ฟเวอร์มาที่เครื่องนี้ (ปิดแอปรอได้เลย)', code);
+          modal('✅ เปิดรับการแจ้งเตือนแล้ว', 'เครื่องนี้พร้อมรับแจ้งเตือนแล้ว (ยังไม่มีแจ้งเตือนเด้งตอนนี้)<br><br>คัดลอกรหัสด้านล่าง แล้วส่งให้ผู้ดูแลระบบ เมื่อผู้ดูแลสั่งส่ง แจ้งเตือนจะเด้งมาที่เครื่องนี้ ปิดแอปรอได้เลย', code);
         });
       });
     }).catch(function (e) {
