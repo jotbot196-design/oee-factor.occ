@@ -2,11 +2,19 @@ package com.tsgp.oee;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
@@ -19,6 +27,7 @@ import androidx.core.content.FileProvider;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebChromeClient;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -29,8 +38,101 @@ import java.util.List;
  * เพิ่มเติมจาก Capacitor ปกติ (ไม่ได้แก้เว็บ):
  *  - ปุ่มแนบรูป -> เลือกได้ทั้ง "ถ่ายรูปด้วยกล้อง" และ "เลือกจากคลังรูป"
  *  - การดาวน์โหลดไฟล์ อยู่ใน DownloadPlugin.java
+ *  - แจ้งเตือนผ่าน Firebase (OeeMessagingService.java): ขออนุญาตแจ้งเตือน + ขอยกเว้นการประหยัดแบต
  */
 public class MainActivity extends BridgeActivity {
+
+    private static final String APP_URL = "https://oee-web.sasatornua.workers.dev/";
+    /** โหมดทดสอบ: แสดงรหัสเครื่องให้คัดลอกส่งผู้ดูแล (ปิดเมื่อมีระบบหลังบ้านเก็บรหัสเอง) */
+    private static final boolean TEST_PUSH = true;
+
+    // ---------- 1) แจ้งเตือน ----------
+    private final ActivityResultLauncher<String> notifPermissionLauncher =
+        registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> afterNotificationPermission());
+
+    private SharedPreferences prefs() { return getSharedPreferences(OeeMessagingService.PREFS, MODE_PRIVATE); }
+
+    private void setupPush() {
+        OeeMessagingService.ensureChannel(this);
+        if (Build.VERSION.SDK_INT >= 33
+            && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+        } else {
+            afterNotificationPermission();
+        }
+    }
+
+    private void afterNotificationPermission() {
+        askBatteryExemptionOnce(() -> FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
+            SharedPreferences p = prefs();
+            boolean changed = !token.equals(p.getString("token", ""));
+            p.edit().putString("token", token).apply();
+            if (TEST_PUSH && (changed || !p.getBoolean("code_shown", false))) showPushCode(token);
+        }));
+    }
+
+    /** ขอให้แอปไม่ถูกจำกัดแบต (ถามครั้งเดียว) — แจ้งเตือนเครื่องเสียจะมาทันทีแม้ปิดจอ */
+    private void askBatteryExemptionOnce(Runnable next) {
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        boolean ignoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        if (ignoring || prefs().getBoolean("battery_asked", false)) { next.run(); return; }
+        prefs().edit().putBoolean("battery_asked", true).apply();
+        new AlertDialog.Builder(this)
+            .setTitle("ให้แจ้งเตือนมาทันที")
+            .setMessage("เพื่อให้แจ้งเตือนเครื่องเสีย / สต็อกต่ำ เด้งทันทีแม้ปิดจอ\nหน้าถัดไปให้กด \"อนุญาต\"")
+            .setCancelable(false)
+            .setPositiveButton("ตกลง", (d, w) -> {
+                try {
+                    startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:" + getPackageName())));
+                } catch (Exception ignored) { }
+                next.run();
+            })
+            .setNegativeButton("ไว้ทีหลัง", (d, w) -> next.run())
+            .show();
+    }
+
+    private void showPushCode(String token) {
+        String code = "OEEAPP:" + token;
+        prefs().edit().putBoolean("code_shown", true).apply();
+        new AlertDialog.Builder(this)
+            .setTitle("✅ เปิดรับแจ้งเตือนแล้ว")
+            .setMessage("สำหรับผู้ทดสอบ: ส่งรหัสนี้ให้ผู้ดูแลระบบ\n(ดูอีกครั้งได้: กดค้างที่ไอคอน OEE → รหัสแจ้งเตือน)")
+            .setPositiveButton("📋 คัดลอกรหัส", (d, w) -> {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("OEE push code", code));
+                Toast.makeText(this, "คัดลอกแล้ว", Toast.LENGTH_SHORT).show();
+            })
+            .setNeutralButton("ส่งต่อ (LINE ฯลฯ)", (d, w) -> {
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_TEXT, code);
+                startActivity(Intent.createChooser(send, "ส่งรหัสแจ้งเตือน"));
+            })
+            .setNegativeButton("ปิด", null)
+            .show();
+    }
+
+    /** เปิดจากแจ้งเตือน (page) หรือจากทางลัด "รหัสแจ้งเตือน" */
+    private void handleIntent(Intent intent) {
+        if (intent == null) return;
+        if ("com.tsgp.oee.SHOW_PUSH_CODE".equals(intent.getAction())) {
+            String t = prefs().getString("token", "");
+            if (!t.isEmpty()) showPushCode(t);
+            else Toast.makeText(this, "ยังไม่มีรหัส ลองเปิดแอปใหม่อีกครั้ง", Toast.LENGTH_LONG).show();
+            return;
+        }
+        String page = intent.getStringExtra("page");
+        if (page != null && !page.isEmpty() && getBridge() != null) {
+            getBridge().getWebView().loadUrl(APP_URL + "?page=" + Uri.encode(page));
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleIntent(intent);
+    }
 
     // ---------- 2) ปุ่มแนบรูป: กล้อง + คลังรูป ----------
     private ValueCallback<Uri[]> pendingFileCallback;
@@ -133,5 +235,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(DownloadPlugin.class);
         super.onCreate(savedInstanceState);
         getBridge().getWebView().setWebChromeClient(new OeeChromeClient());
+        setupPush();
+        // หมายเหตุ: Capacitor เรียก onNewIntent(getIntent()) ให้เองตอนเริ่มแอป จึงไม่ต้องเรียก handleIntent ซ้ำ
     }
 }

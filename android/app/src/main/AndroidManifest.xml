@@ -21,8 +21,28 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- กดค้างที่ไอคอน → "รหัสแจ้งเตือน (ผู้ทดสอบ)" -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
 
         </activity>
+
+        <!-- รับแจ้งเตือนจาก Firebase -->
+        <service
+            android:name=".OeeMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="oee_alerts" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_oee" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/oee_amber" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -41,6 +61,9 @@
     <!-- ถ่ายรูปแนบในหน้า Maintenance / แผนแม่พิมพ์ -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- แจ้งเตือน (Android 13+) และขอยกเว้นการประหยัดแบต เพื่อให้แจ้งเตือนมาทันที -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- ให้ Android 11+ หาแอปกล้องและแอปเปิดไฟล์เจอ -->
     <queries>

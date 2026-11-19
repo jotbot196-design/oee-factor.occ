@@ -1,0 +1,23 @@
+name: Push test (Android app / FCM)
+
+on:
+  push:
+    branches: [main]
+    paths: ['push-test/fcm-codes.txt']
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Send test notification to Android app
+        working-directory: push-test
+        env:
+          FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT }}
+        run: |
+          npm install --no-audit --no-fund
+          node fcm-send.js

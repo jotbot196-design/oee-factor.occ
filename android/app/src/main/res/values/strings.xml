@@ -4,4 +4,5 @@
     <string name="title_activity_main">OEE</string>
     <string name="package_name">com.tsgp.oee</string>
     <string name="custom_url_scheme">com.tsgp.oee</string>
+    <string name="shortcut_push_code">รหัสแจ้งเตือน (ผู้ทดสอบ)</string>
 </resources>

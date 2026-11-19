@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ไอคอนแจ้งเตือน (สีเดียว) รูปเกจ OEE -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M12,4C6.48,4 2,8.48 2,14c0,1.86 0.51,3.6 1.4,5.09l1.73,-1A7.96,7.96 0 0,1 4,14c0,-4.41 3.59,-8 8,-8s8,3.59 8,8c0,1.46 -0.4,2.83 -1.09,4.01l1.73,1A9.93,9.93 0 0,0 22,14c0,-5.52 -4.48,-10 -10,-10z"/>
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M16.95,8.64l-4.2,4.13A2,2 0 1,0 14.1,14.2l4.2,-4.13z"/>
+</vector>

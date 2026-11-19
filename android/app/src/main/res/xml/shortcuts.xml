@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="push_code"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_push_code"
+        android:shortcutLongLabel="@string/shortcut_push_code">
+        <intent
+            android:action="com.tsgp.oee.SHOW_PUSH_CODE"
+            android:targetPackage="com.tsgp.oee"
+            android:targetClass="com.tsgp.oee.MainActivity" />
+    </shortcut>
+</shortcuts>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "532624653774",
+    "project_id": "oee-factory-f5d9e",
+    "storage_bucket": "oee-factory-f5d9e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:532624653774:android:6a82641b7bf6043fe03f9f",
+        "android_client_info": {
+          "package_name": "com.tsgp.oee"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBaXY5iyd1-Ep_XkcsYXEDIjjHFRFQ-7PU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
