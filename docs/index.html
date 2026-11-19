@@ -81,6 +81,12 @@
   .qr p{margin:0;font-size:14px;color:var(--muted)}
 
   /* กล่องแนะนำเด้งเอง ชี้ไปที่ปุ่มแชร์ของ Safari */
+  .inst-row{display:flex;align-items:center;gap:14px}
+  .spinner{width:34px;height:34px;flex:none;border-radius:50%;border:4px solid var(--panel2);border-top-color:var(--amber);animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .bar{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:16px 0 4px}
+  .bar i{display:block;height:100%;width:35%;background:var(--amber);border-radius:99px;animation:slide 1.4s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
   #coach{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:10;background:#fff;color:#111;border-radius:16px;padding:14px 16px 12px;box-shadow:0 10px 40px rgba(0,0,0,.5);font-family:-apple-system,"IBM Plex Sans Thai",system-ui,sans-serif;max-width:480px;margin:0 auto}
   #coach.top{bottom:auto;top:calc(14px + env(safe-area-inset-top))}
   #coach b{font-size:16px}
@@ -194,8 +200,13 @@
       <button class="btn" id="andInstallBtn" onclick="installAndroid()">ติดตั้งแอป OEE</button>
       <p class="hint" id="andInstallHint">กดแล้วเลือก <b>ติดตั้ง</b> · รับแจ้งเตือนได้</p>
     </div>
-    <div class="ok hidden" id="andWait" style="margin-bottom:16px;background:rgba(255,176,32,.1);border-color:rgba(255,176,32,.4)">⏳ <b>กำลังติดตั้ง...</b> ใช้เวลาประมาณ 1 นาที (ดูความคืบหน้าที่แถบแจ้งเตือน)<br>ถ้าเกิน 3 นาทีแล้วยังไม่เสร็จ ดูหัวข้อ <b>"ติดตั้งค้าง?"</b> ด้านล่าง</div>
-    <div class="ok hidden" id="andDone" style="margin-bottom:16px">✅ ติดตั้งเสร็จแล้ว! เปิดไอคอน <b>OEE</b> ที่หน้าจอหลัก (หรือค้นหา "OEE" ในหน้ารวมแอป)</div>
+    <div class="card hidden" id="andWait">
+      <div class="inst-row"><div class="spinner"></div><div><b style="font-size:17px">กำลังติดตั้ง OEE...</b><br><span class="hint" style="margin:0">ผ่านไป <span id="andSecs">0</span> วินาที · ปกติไม่เกิน 1–2 นาที</span></div></div>
+      <div class="bar"><i></i></div>
+      <p class="hint" style="text-align:left">⚠️ อย่ากดติดตั้งซ้ำ ไม่งั้นจะได้แอป 2 อัน · ปิดหน้านี้ได้ ระบบติดตั้งต่อเอง</p>
+      <p class="hint hidden" id="andSlow" style="text-align:left;color:var(--amber)">ช้ากว่าปกติ ลองดูหัวข้อ <b>"ติดตั้งค้าง?"</b> ด้านล่าง</p>
+    </div>
+    <div class="ok hidden" id="andDone" style="margin-bottom:16px">✅ ติดตั้งเสร็จแล้ว! เปิดไอคอน <b>OEE</b> ที่หน้าจอหลัก (หรือค้นหา "OEE" ในหน้ารวมแอป)<br><a href="#" style="color:var(--muted);font-size:13px" onclick="localStorage.setItem('oee-installed','0');location.reload();return false">ไม่เจอแอป? กดเพื่อติดตั้งใหม่</a></div>
 
     <div class="card">
       <h2>ติดตั้งบน Android (2 ขั้น)</h2>
@@ -311,32 +322,60 @@
   };
   show(isAndroid ? 'android' : 'ios');
 
-  // ---- Android: ปุ่มติดตั้งของ Chrome ----
-  var deferredPrompt = null;
+  // ---- Android: ปุ่มติดตั้งของ Chrome + สถานะกำลังติดตั้ง ----
+  var deferredPrompt = null, waitTimer = null;
+  var el = function (id) { return document.getElementById(id); };
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredPrompt = e; });
-  window.addEventListener('appinstalled', function () {
-    deferredPrompt = null;
-    document.getElementById('andInstallCard').classList.add('hidden');
-    document.getElementById('andWait').classList.add('hidden');
-    document.getElementById('andDone').classList.remove('hidden');
-  });
-  if (isAndroid && /FBAN|FBAV|Instagram|\bLine\/|; wv\)/i.test(ua)) document.getElementById('andInapp').classList.remove('hidden');
+
+  function showState(state) { // 'button' | 'wait' | 'done'
+    el('andInstallCard').classList.toggle('hidden', state !== 'button');
+    el('andWait').classList.toggle('hidden', state !== 'wait');
+    el('andDone').classList.toggle('hidden', state !== 'done');
+  }
+  function startWait(startTs) {
+    showState('wait');
+    clearInterval(waitTimer);
+    var tick = function () {
+      var secs = Math.max(0, Math.round((Date.now() - startTs) / 1000));
+      el('andSecs').textContent = secs;
+      el('andSlow').classList.toggle('hidden', secs < 180);
+      if (secs > 600) { clearInterval(waitTimer); store('oee-install-ts', '0'); showState('button'); }
+    };
+    tick(); waitTimer = setInterval(tick, 1000);
+  }
+  function markDone() {
+    clearInterval(waitTimer); store('oee-install-ts', '0'); store('oee-installed', '1'); showState('done');
+  }
+  window.addEventListener('appinstalled', markDone);
+
+  if (isAndroid) {
+    var startedAt = +(store('oee-install-ts') || 0);
+    if (store('oee-installed') === '1') showState('done');
+    else if (startedAt && Date.now() - startedAt < 600000) startWait(startedAt);
+    // ถ้าเครื่องนี้ติดตั้งแอปแล้ว (Chrome บอกได้) ไม่ต้องแสดงปุ่มติดตั้ง
+    if (navigator.getInstalledRelatedApps) {
+      navigator.getInstalledRelatedApps().then(function (apps) {
+        if (apps && apps.length) markDone();
+        else if (store('oee-installed') === '1') { store('oee-installed', '0'); showState('button'); } // ถูกถอนการติดตั้งไปแล้ว
+      }).catch(function () {});
+    }
+  }
+  if (isAndroid && /FBAN|FBAV|Instagram|\bLine\/|; wv\)/i.test(ua)) el('andInapp').classList.remove('hidden');
+
   window.installAndroid = function () {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(function (c) {
-        if (c && c.outcome === 'accepted') {
-          document.getElementById('andInstallCard').classList.add('hidden');
-          if (document.getElementById('andDone').classList.contains('hidden')) document.getElementById('andWait').classList.remove('hidden');
+        if (c && c.outcome === 'accepted' && el('andDone').classList.contains('hidden')) {
+          var now = Date.now(); store('oee-install-ts', String(now)); startWait(now);
         }
         deferredPrompt = null;
       });
     } else {
-      var m = document.getElementById('andManual'); m.open = true; m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var m = el('andManual'); m.open = true; m.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
-  if (!isIOS && !isAndroid) document.getElementById('desktop').classList.remove('hidden');
 
   // กล่องแนะนำเด้งเอง: เฉพาะ iPhone/iPad ที่ยังไม่ได้ติดตั้ง และไม่ได้กด "ไว้ทีหลัง" ใน 3 วัน
   var snoozed = +(store('oee-coach-snooze') || 0) > Date.now();
