@@ -120,6 +120,7 @@
       <details id="tmTester" class="hidden"><summary>สำหรับผู้ทดสอบ: แสดงรหัส</summary>
         <textarea id="tmCode" readonly></textarea>
         <button class="go" id="tmCopy" onclick="copyTestCode()">📋 คัดลอกรหัส</button>
+        <button class="close" onclick="localNotifyTest()">🔔 ทดสอบในเครื่อง (เด้งทันที)</button>
       </details>
       <button class="close" onclick="document.getElementById('testModal').classList.add('hidden')">ปิด</button>
     </div>
@@ -424,7 +425,7 @@
     }
     if (pushReady && Notification.permission === 'granted') subscribe().catch(function () {});
 
-    window.testPush = testPush; window.copyTestCode = copyTestCode;
+    window.testPush = testPush; window.copyTestCode = copyTestCode; window.localNotifyTest = localNotifyTest;
     if (C.testPush && C.testPushPublicKey) document.getElementById('testBar').classList.remove('hidden');
   }
 
@@ -442,6 +443,16 @@
     (navigator.clipboard ? navigator.clipboard.writeText(ta.value) : Promise.reject())
       .then(function () { btn.textContent = '✅ คัดลอกแล้ว วางส่งให้ Claude ได้เลย'; })
       .catch(function () { ta.focus(); ta.select(); btn.textContent = 'กดค้างที่ช่องรหัส → คัดลอก'; });
+  }
+  function localNotifyTest() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') {
+      alert('ยังไม่ได้อนุญาตการแจ้งเตือน (สถานะ: ' + (('Notification' in window) ? Notification.permission : 'ไม่รองรับ') + ')'); return;
+    }
+    navigator.serviceWorker.ready.then(function (reg) {
+      return reg.showNotification('OEE ทดสอบในเครื่อง', { body: 'ถ้าเห็นข้อความนี้ แปลว่าเครื่องแสดงแจ้งเตือนได้ ✅', icon: 'icon-192.png', tag: 'oee-local' });
+    }).then(function () {
+      document.getElementById('tmMsg').innerHTML = 'สั่งแสดงแจ้งเตือนแล้ว ดูที่แถบด้านบน<br>(สถานะ SW: ' + (navigator.serviceWorker.controller ? 'ทำงาน' : 'ยังไม่ควบคุมหน้า') + ')';
+    }).catch(function (e) { alert('แสดงแจ้งเตือนไม่ได้: ' + (e && e.message ? e.message : e)); });
   }
   function testPush() {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
