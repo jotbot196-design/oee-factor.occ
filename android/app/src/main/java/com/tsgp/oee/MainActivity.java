@@ -53,7 +53,7 @@ public class MainActivity extends BridgeActivity {
     private SharedPreferences prefs() { return getSharedPreferences(OeeMessagingService.PREFS, MODE_PRIVATE); }
 
     private void setupPush() {
-        OeeMessagingService.ensureChannel(this);
+        OeeMessagingService.ensureChannels(this);
         if (Build.VERSION.SDK_INT >= 33
             && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);

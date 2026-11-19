@@ -26,6 +26,9 @@
 
         </activity>
 
+        <!-- ปุ่ม "รับทราบ" ในแจ้งเตือนเครื่องเสีย -->
+        <receiver android:name=".AckReceiver" android:exported="false" />
+
         <!-- รับแจ้งเตือนจาก Firebase -->
         <service
             android:name=".OeeMessagingService"
@@ -36,7 +39,7 @@
         </service>
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="oee_alerts" />
+            android:value="oee_normal_v1" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_oee" />
