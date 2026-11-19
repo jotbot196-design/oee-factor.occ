@@ -184,21 +184,47 @@
 
   <!-- ===== Android ===== -->
   <section id="android" class="hidden">
-    <div class="card">
-      <a class="btn" id="apkBtn" href="#">ดาวน์โหลดแอป Android</a>
-      <p class="hint">ไฟล์ OEE.apk ขนาดประมาณ 4 MB</p>
+    <div class="warn hidden" id="andInapp">
+      <b>⚠️ ต้องเปิดหน้านี้ใน Chrome ก่อน</b><br>
+      แตะ <b>⋮</b> มุมขวาบน แล้วเลือก <b>"เปิดใน Chrome"</b> หรือ <b>"เปิดในเบราว์เซอร์"</b>
+      <button class="btn ghost" onclick="copyLink(this)">📋 คัดลอกลิงก์</button>
     </div>
+
+    <div class="card" id="andInstallCard">
+      <button class="btn" id="andInstallBtn" onclick="installAndroid()">ติดตั้งแอป OEE</button>
+      <p class="hint" id="andInstallHint">กดแล้วเลือก <b>ติดตั้ง</b> · รับแจ้งเตือนได้</p>
+    </div>
+    <div class="ok hidden" id="andDone" style="margin-bottom:16px">✅ ติดตั้งแล้ว! ไปที่หน้าจอหลัก แล้วเปิดไอคอน <b>OEE</b></div>
+
     <div class="card">
-      <h2>ขั้นตอนหลังกดปุ่ม</h2>
+      <h2>ติดตั้งบน Android (2 ขั้น)</h2>
       <ol class="steps">
-        <li><div class="step-txt">รอดาวน์โหลดเสร็จ แล้วแตะไฟล์ <b>OEE.apk</b> (หรือเปิดจากแถบแจ้งเตือน)</div></li>
-        <li><div class="step-txt">ครั้งแรกจะถามเรื่อง <b>"ติดตั้งแอปที่ไม่รู้จัก"</b> → กด <b>การตั้งค่า</b> → เปิด <b>อนุญาตจากแหล่งที่มานี้</b> → กดย้อนกลับ</div></li>
-        <li><div class="step-txt">กด <b>ติดตั้ง</b> แล้วกด <b>เปิด</b> ✅</div></li>
+        <li><div class="step-txt">กดปุ่มสีส้ม <b>"ติดตั้งแอป OEE"</b> ด้านบน</div></li>
+        <li><div class="step-txt">กด <b>ติดตั้ง</b> ในกล่องที่เด้งขึ้นมา
+          <div class="mock"><div class="row" style="justify-content:flex-start"><img class="appic" src="icon-180.png" alt=""><span><b>ติดตั้งแอปไหม</b><br>OEE โรงงาน</span></div><div class="row"><span></span><span><span class="blue" style="margin-right:18px">ยกเลิก</span><span class="blue">ติดตั้ง</span></span></div></div></div></li>
       </ol>
-      <details><summary>Google Play Protect เตือน?</summary><p>กด "รายละเอียดเพิ่มเติม" → "ติดตั้งต่อไป" เพราะแอปนี้ไม่ได้มาจาก Play Store จึงมีคำเตือน</p></details>
+      <p class="ok" style="margin:14px 0 0">✅ ไอคอน <b>OEE</b> จะอยู่บนหน้าจอหลัก กดแล้วเปิดเต็มจอเหมือนแอป และรับแจ้งเตือนได้</p>
+      <details id="andManual"><summary>กดปุ่มแล้วไม่มีอะไรขึ้น?</summary>
+        <ol>
+          <li>เปิดหน้านี้ใน <b>Chrome</b></li>
+          <li>แตะ <b>⋮</b> มุมขวาบน</li>
+          <li>เลือก <b>"ติดตั้งแอป"</b> หรือ <b>"เพิ่มลงในหน้าจอหลัก"</b> → <b>ติดตั้ง</b></li>
+        </ol>
+        <p>ถ้าเคยติดตั้งแล้ว ปุ่มจะไม่ขึ้น ให้เปิดจากไอคอน OEE บนหน้าจอหลักได้เลย</p>
+      </details>
     </div>
+
     <div class="card">
       <a class="btn ghost" id="useNowAndroid" href="#" style="margin-top:0">ใช้เลย ไม่ต้องติดตั้ง</a>
+      <details>
+        <summary>อีกวิธี: ติดตั้งจากไฟล์ APK (ไม่มีแจ้งเตือน)</summary>
+        <ol>
+          <li>กดปุ่มด้านล่าง รอดาวน์โหลดเสร็จ แล้วแตะไฟล์ <b>OEE.apk</b></li>
+          <li>ถ้าถาม "ติดตั้งแอปที่ไม่รู้จัก" → <b>การตั้งค่า</b> → เปิด <b>อนุญาตจากแหล่งที่มานี้</b> → ย้อนกลับ</li>
+          <li>กด <b>ติดตั้ง</b> (ถ้า Play Protect เตือน → รายละเอียดเพิ่มเติม → ติดตั้งต่อไป)</li>
+        </ol>
+        <a class="btn ghost" id="apkBtn" href="#">ดาวน์โหลด OEE.apk</a>
+      </details>
     </div>
   </section>
 
@@ -271,6 +297,31 @@
     });
   };
   show(isAndroid ? 'android' : 'ios');
+
+  // ---- Android: ปุ่มติดตั้งของ Chrome ----
+  var deferredPrompt = null;
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredPrompt = e; });
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
+    document.getElementById('andInstallCard').classList.add('hidden');
+    document.getElementById('andDone').classList.remove('hidden');
+  });
+  if (isAndroid && /FBAN|FBAV|Instagram|\bLine\/|; wv\)/i.test(ua)) document.getElementById('andInapp').classList.remove('hidden');
+  window.installAndroid = function () {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function (c) {
+        if (c && c.outcome === 'accepted') {
+          document.getElementById('andInstallCard').classList.add('hidden');
+          document.getElementById('andDone').classList.remove('hidden');
+        }
+        deferredPrompt = null;
+      });
+    } else {
+      var m = document.getElementById('andManual'); m.open = true; m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
   if (!isIOS && !isAndroid) document.getElementById('desktop').classList.remove('hidden');
 
   // กล่องแนะนำเด้งเอง: เฉพาะ iPhone/iPad ที่ยังไม่ได้ติดตั้ง และไม่ได้กด "ไว้ทีหลัง" ใน 3 วัน
