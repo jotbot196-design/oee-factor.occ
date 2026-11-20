@@ -75,6 +75,12 @@ public class OeeMessagingService extends FirebaseMessagingService {
         String body = msg.getNotification() != null && msg.getNotification().getBody() != null
             ? msg.getNotification().getBody() : data.getOrDefault("body", "");
         String tag = data.get("tag");
+        if (tag != null && !tag.isEmpty()) {
+            android.content.SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
+            long last = sp.getLong("seen_" + tag, 0);
+            if (System.currentTimeMillis() - last < 10 * 60_000L) return;   // แจ้งเรื่องนี้ไปแล้ว ไม่แจ้งซ้ำ
+            sp.edit().putLong("seen_" + tag, System.currentTimeMillis()).apply();
+        }
         int id = tag != null && !tag.isEmpty() ? tag.hashCode() : (int) (System.currentTimeMillis() & 0x7fffffff);
         Alerts.show(this, data.getOrDefault("type", "normal"), title, body, data.getOrDefault("page", ""), id);
     }

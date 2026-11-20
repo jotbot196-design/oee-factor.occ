@@ -13,6 +13,9 @@
  */
 
 const ALERT_PATH = 'maintenance-alerts';
+const POLL_SECONDS = 10;          // เช็คเว็บทุก 10 วินาที (6 ครั้ง/นาที ≈ 8,640 ครั้ง/วัน)
+let lastKick = 0;
+let seenCache = null;             // จำในหน่วยความจำ ลดการอ่าน KV
 
 export default {
   async fetch(request, env) {
@@ -30,6 +33,13 @@ export default {
         }
         return json({ ok: true });
       }
+      // แอปสะกิดทันทีหลังช่างกดส่งแจ้งซ่อม → เช็คเว็บเดี๋ยวนี้ (ไม่รับข้อความจากแอป อ่านจากเว็บจริงเสมอ)
+      if (url.pathname === '/kick' && request.method === 'POST') {
+        if (Date.now() - lastKick < 2000) return json({ ok: true, skipped: true });
+        lastKick = Date.now();
+        const st = await checkAlerts(env);
+        return json({ ok: !!st.ok, newAlerts: st.newAlerts || 0 });
+      }
       if (url.pathname === '/status' && request.method === 'GET') {
         const [status, devices] = await Promise.all([env.STORE.get('status', 'json'), listTokens(env)]);
         return json({ devices: devices.length, ...(status || {}) });
@@ -41,8 +51,16 @@ export default {
     }
   },
 
+  // Cron ทำงานทุก 1 นาที → ข้างในวนเช็คทุก 10 วินาที
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(checkAlerts(env));
+    ctx.waitUntil((async () => {
+      const start = Date.now();
+      for (let i = 0; i < 60 / POLL_SECONDS; i++) {
+        const wait = start + i * POLL_SECONDS * 1000 - Date.now();
+        if (wait > 0) await new Promise(r => setTimeout(r, wait));
+        await checkAlerts(env);
+      }
+    })());
   }
 };
 
@@ -64,11 +82,13 @@ export async function checkAlerts(env) {
     const keyOf = a => String(a.id) + '@' + (a.ts || '');
     const keys = open.map(keyOf).sort();
 
-    const prevRaw = await env.STORE.get('seen:mtn');
+    const prevRaw = seenCache !== null ? seenCache : await env.STORE.get('seen:mtn');
     const prev = prevRaw === null ? null : new Set(JSON.parse(prevRaw));
     const fresh = prev === null ? [] : open.filter(a => !prev.has(keyOf(a)));
     // เขียน KV เฉพาะตอนรายการเปลี่ยน
-    if (prevRaw === null || prevRaw !== JSON.stringify(keys)) await env.STORE.put('seen:mtn', JSON.stringify(keys));
+    const nowRaw = JSON.stringify(keys);
+    if (prevRaw === null || prevRaw !== nowRaw) await env.STORE.put('seen:mtn', nowRaw);
+    seenCache = nowRaw;
 
     let sent = 0;
     for (const a of fresh) {
@@ -99,7 +119,7 @@ export function formatAlert(a) {
     title: '🔧 แจ้งซ่อม' + (reRaised ? 'ซ้ำ' : '') + ': ' + (a.machine || '-'),
     body: [a.cause, a.note || 'ไม่ระบุอาการ', t].filter(Boolean).join(' · '),
     page: 'maintenance',
-    tag: 'mtn-' + a.id
+    tag: 'mtn-' + a.id + '-' + (a.ts || '')
   };
 }
 

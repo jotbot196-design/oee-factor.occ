@@ -20,15 +20,34 @@ public final class Registrar {
 
     private Registrar() { }
 
+    /** อ่านที่อยู่ตัวเฝ้าดูจาก app-config.json แล้วจำไว้ */
+    private static String loadNotifyUrl(Context app) throws Exception {
+        String cfg = http("GET", CONFIG_URL + "?t=" + System.currentTimeMillis(), null);
+        String u = new JSONObject(cfg).optString("notifyUrl", "").trim();
+        if (u.endsWith("/")) u = u.substring(0, u.length() - 1);
+        app.getSharedPreferences(OeeMessagingService.PREFS, Context.MODE_PRIVATE).edit().putString("notify_url", u).apply();
+        return u;
+    }
+
+    /** ช่างเพิ่งส่งแจ้งซ่อม → สะกิดตัวเฝ้าดูให้เช็คเว็บทันที (แจ้งเตือนถึงทุกเครื่องใน 1–2 วินาที) */
+    public static void kick(Context ctx) {
+        final Context app = ctx.getApplicationContext();
+        new Thread(() -> {
+            try {
+                String u = app.getSharedPreferences(OeeMessagingService.PREFS, Context.MODE_PRIVATE).getString("notify_url", "");
+                if (u.isEmpty()) u = loadNotifyUrl(app);
+                if (!u.isEmpty()) http("POST", u + "/kick", "{}");
+            } catch (Exception ignored) { }
+        }).start();
+    }
+
     public static void register(Context ctx, String token) {
         if (token == null || token.isEmpty()) return;
         final Context app = ctx.getApplicationContext();
         new Thread(() -> {
             try {
-                String cfg = http("GET", CONFIG_URL + "?t=" + System.currentTimeMillis(), null);
-                String notifyUrl = new JSONObject(cfg).optString("notifyUrl", "").trim();
+                String notifyUrl = loadNotifyUrl(app);
                 if (notifyUrl.isEmpty()) return;
-                if (notifyUrl.endsWith("/")) notifyUrl = notifyUrl.substring(0, notifyUrl.length() - 1);
                 JSONObject body = new JSONObject().put("token", token).put("platform", "android-app");
                 http("POST", notifyUrl + "/register", body.toString());
                 app.getSharedPreferences(OeeMessagingService.PREFS, Context.MODE_PRIVATE)

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import worker, { checkAlerts, signServiceAccountJwt } from '../src/index.js';
+const ctx = { waitUntil: p => p };
 let pass = 0; const ok = (c, m) => { if (!c) { console.error('FAIL:', m); process.exit(1); } pass++; console.log('  ✓', m); };
 
 // fake KV
@@ -68,6 +69,14 @@ console.log('4) status');
 r = await worker.fetch(req('/status', 'GET'), env);
 const sj = await r.json();
 ok(sj.devices === 1 && sj.ok === true, 'status: ' + JSON.stringify(sj));
+
+console.log('4b) kick');
+fcm = []; alerts.push({ id: 'a3', machine: 'MP10', status: 'open', cause: 'แม่พิมพ์', note: 'ติด', ts: 9, startTs: 9 });
+r = await worker.fetch(req('/kick', 'POST'), env);
+let kj = await r.json();
+ok(kj.ok && kj.newAlerts === 1 && fcm.length === 1 && fcm[0].data.tag === 'mtn-a3-9', 'kick → immediate notification, tag ' + fcm[0].data.tag);
+r = await worker.fetch(req('/kick', 'POST'), env); kj = await r.json();
+ok(kj.skipped === true, 'kick rate-limited (2s)');
 
 console.log('5) API error');
 globalThis.fetch = async () => new Response('x', { status: 500 });

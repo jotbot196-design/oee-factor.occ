@@ -59,6 +59,21 @@ public class DownloadPlugin extends Plugin {
         " }" +
         " var origClick = HTMLAnchorElement.prototype.click;" +
         " HTMLAnchorElement.prototype.click = function(){ if (handle(this)) return; return origClick.apply(this, arguments); };" +
+        // ช่างกดส่งแจ้งซ่อม (บันทึก maintenance-alerts สำเร็จ) → สะกิดตัวเฝ้าดูให้ส่งแจ้งเตือนทันที
+        " try {" +
+        "   var of = window.fetch;" +
+        "   window.fetch = function(input, init){" +
+        "     var p = of.apply(this, arguments);" +
+        "     try {" +
+        "       var u = typeof input === 'string' ? input : ((input && input.url) || '');" +
+        "       var m = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();" +
+        "       if (m === 'PUT' && u.indexOf('/api/kv') >= 0 && decodeURIComponent(u).indexOf('maintenance-alerts') >= 0) {" +
+        "         p.then(function(r){ if (r && r.ok) OeeNative.kickNotifier(); }).catch(function(){});" +
+        "       }" +
+        "     } catch(e) {}" +
+        "     return p;" +
+        "   };" +
+        " } catch(e) {}" +
         // แจ้งเตือนที่เว็บสร้างเอง (new Notification) → แสดงเป็นแจ้งเตือนของแอป ข้อความเดียวกับเว็บ เสียงปกติ
         " try {" +
         "   var N = function(title, opts){ opts = opts || {}; this.title = title; this.body = opts.body || ''; this.tag = opts.tag || ''; this.onclick = null;" +
@@ -107,6 +122,12 @@ public class DownloadPlugin extends Plugin {
             } catch (Exception e) {
                 showError("บันทึกไฟล์ไม่สำเร็จ: " + e.getMessage());
             }
+        }
+
+        /** ช่างเพิ่งส่งแจ้งซ่อมจากแอป → ให้ตัวเฝ้าดูเช็คทันที */
+        @JavascriptInterface
+        public void kickNotifier() {
+            Registrar.kick(activity);
         }
 
         /** แจ้งเตือนจากหน้าเว็บ (เสียงปกติ) */
