@@ -1,3 +1,2 @@
 OEEAPP:ebdp0n-qQtq2T-xQ8hEtvr:APA91bH-evIDme5Obr6xDboXLAFkxXcPE0Bcv-0v3gaHAgOvQ-5aPhYz2_MGS5n6EwZdX-R4jK6F9ty0EcDPIz1wbimGFrVyn_F9oOfWXfQBVtXgRbFm0NA
-TYPE:breakdown
-# ส่งรอบ 2026-11-19 20:34:49 (แอป APK, เสียงเครื่องเสีย + ดังซ้ำ)
+# ส่งรอบ 2026-11-20 08:08:53 (แอป APK, เสียงปกติ)
