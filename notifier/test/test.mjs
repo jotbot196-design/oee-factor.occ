@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import worker, { checkAlerts, signServiceAccountJwt, testKey } from '../src/index.js';
+import worker, { checkAlerts, checkDie, checkAll, formatDieJob, signServiceAccountJwt, testKey } from '../src/index.js';
 const ctx = { waitUntil: p => p };
 let pass = 0; const ok = (c, m) => { if (!c) { console.error('FAIL:', m); process.exit(1); } pass++; console.log('  ✓', m); };
 
@@ -17,9 +17,10 @@ const sa = { project_id: 'oee-factory-f5d9e', private_key_id: 'kid1', client_ema
   private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) };
 const env = { STORE, OEE_API: 'https://oee.example', FCM_SERVICE_ACCOUNT: JSON.stringify(sa) };
 
-let alerts = [], fcm = [];
+let alerts = [], fcm = [], dieJobs = [];
 globalThis.fetch = async (url, init = {}) => {
   url = String(url);
+  if (url === 'https://oee.example/api/push/pending') return new Response(JSON.stringify({ jobs: dieJobs }), { status: 200 });
   if (url.startsWith('https://oee.example/api/kv')) return new Response(JSON.stringify({ value: alerts }), { status: 200 });
   if (url === 'https://oauth2.googleapis.com/token') return new Response(JSON.stringify({ access_token: 'AT', expires_in: 3600 }));
   if (url.includes('fcm.googleapis.com')) {
@@ -88,7 +89,27 @@ const tj = await r.json();
 ok(tj.sent === 1 && fcm[0].data.title.includes('ทดสอบ'), 'test sends to registered devices: ' + JSON.stringify(tj));
 
 console.log('5) API error');
+const realFetch = globalThis.fetch;
 globalThis.fetch = async () => new Response('x', { status: 500 });
 st = await checkAlerts(env);
 ok(!st.ok && /500/.test(st.error), 'error recorded: ' + st.error);
+globalThis.fetch = realFetch;
+console.log('9) die maintenance');
+ok(kv.has('seen:die'), 'die list seeded earlier (silent, via kick/cron)');
+fcm = []; dieJobs = [{ id: 'd1', model: 'X1', partName: 'BRKT', process: 'OP10', problem: 'แตก', reporter: 'สมชาย', status: 'wait' }];
+let ds = await checkDie(env);
+ok(ds.ok && ds.newAlerts === 1 && fcm[0].data.body === 'X1 · BRKT · OP10\nแตก\nผู้แจ้ง: สมชาย', 'first die job notified with reporter');
+fcm = []; dieJobs.push({ id: 'd2', model: 'Y2', partName: 'PLATE', problem: 'สึก' });
+ds = await checkDie(env);
+ok(ds.newAlerts === 1 && fcm.length > 0 && fcm.every(m => m.data.tag === 'die-d2'), 'new die job → notify once per device');
+ok(fcm[0].data.title === '🛠️ แจ้งซ่อมแม่พิมพ์ใหม่ (รอรับ 2 งาน)' && fcm[0].data.body === 'Y2 · PLATE\nสึก' && fcm[0].data.page === 'die-maintenance', 'text same as website push');
+fcm = []; ds = await checkDie(env);
+ok(ds.newAlerts === 0 && fcm.length === 0, 'no repeat');
+fcm = []; dieJobs = []; await checkDie(env); dieJobs = [{ id: 'd2', model: 'Y2' }]; ds = await checkDie(env);
+ok(ds.newAlerts === 0, 'job leaving and returning to wait → no repeat');
+const f1 = formatDieJob({ id: 'z', model: 'M', problem: 'p', reporter: 'r' }, 1);
+ok(f1.title === '🛠️ แจ้งซ่อมแม่พิมพ์ใหม่' && f1.body === 'M\np\nผู้แจ้ง: r', 'single job format');
+const all = await checkAll(env);
+ok(all.ok, 'checkAll ok');
+
 console.log('\nALL PASSED:', pass);

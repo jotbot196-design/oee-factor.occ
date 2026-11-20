@@ -67,7 +67,8 @@ public class DownloadPlugin extends Plugin {
         "     try {" +
         "       var u = typeof input === 'string' ? input : ((input && input.url) || '');" +
         "       var m = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();" +
-        "       if (m === 'PUT' && u.indexOf('/api/kv') >= 0 && decodeURIComponent(u).indexOf('maintenance-alerts') >= 0) {" +
+        "       if ((m === 'PUT' && u.indexOf('/api/kv') >= 0 && decodeURIComponent(u).indexOf('maintenance-alerts') >= 0)" +
+        "           || (m === 'POST' && u.indexOf('/api/push/notify') >= 0)) {" +
         "         p.then(function(r){ if (r && r.ok) OeeNative.kickNotifier(); }).catch(function(){});" +
         "       }" +
         "     } catch(e) {}" +

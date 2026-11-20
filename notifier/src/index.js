@@ -37,7 +37,7 @@ export default {
       if (url.pathname === '/kick' && (request.method === 'POST' || request.method === 'GET')) {
         if (Date.now() - lastKick < 2000) return json({ ok: true, skipped: true });
         lastKick = Date.now();
-        const st = await checkAlerts(env);
+        const st = await checkAll(env);
         return json({ ok: !!st.ok, newAlerts: st.newAlerts || 0 });
       }
       // ทดสอบส่งถึงทุกเครื่องที่ลงทะเบียน (ใช้จาก GitHub Actions เท่านั้น — ต้องมีรหัสทดสอบ)
@@ -66,7 +66,7 @@ export default {
       for (let i = 0; i < 60 / POLL_SECONDS; i++) {
         const wait = start + i * POLL_SECONDS * 1000 - Date.now();
         if (wait > 0) await new Promise(r => setTimeout(r, wait));
-        await checkAlerts(env);
+        await checkAll(env);
       }
     })());
   }
@@ -113,6 +113,50 @@ export async function checkAlerts(env) {
     await env.STORE.put('status', JSON.stringify(status));
   }
   return status;
+}
+
+// ---------------------------------------------------------------------------
+// แจ้งซ่อมแม่พิมพ์ (หน้า die-maintenance) — อ่านรายการ "รอรับ" จาก /api/push/pending
+// ซึ่งเป็นข้อมูลเดียวกับที่ Web Push ของเว็บใช้ (iPhone ได้ข้อความแบบนี้)
+// ---------------------------------------------------------------------------
+let dieSeenCache = null;
+export async function checkDie(env) {
+  try {
+    const res = await fetch(env.OEE_API + '/api/push/pending', { cache: 'no-store' });
+    if (!res.ok) throw new Error('อ่านงานแจ้งซ่อมแม่พิมพ์ไม่ได้ HTTP ' + res.status);
+    const jobs = ((await res.json()) || {}).jobs || [];
+    const ids = jobs.filter(j => j && j.id).map(j => String(j.id));
+    const prevRaw = dieSeenCache !== null ? dieSeenCache : await env.STORE.get('seen:die');
+    const prev = prevRaw === null ? null : new Set(JSON.parse(prevRaw));
+    // จำงานที่เคยแจ้งไว้ (รวมงานที่หลุดจาก "รอรับ" ไปไม่เกิน 200 รายการล่าสุด) กันแจ้งซ้ำ
+    const fresh = prev === null ? [] : jobs.filter(j => j && j.id && !prev.has(String(j.id)));
+    const keep = [...new Set([...(prev ? [...prev] : []), ...ids])].slice(-200);
+    const nowRaw = JSON.stringify(keep);
+    if (prevRaw === null || prevRaw !== nowRaw) await env.STORE.put('seen:die', nowRaw);
+    dieSeenCache = nowRaw;
+    let sent = 0;
+    for (const j of fresh) sent += (await sendToAll(env, formatDieJob(j, jobs.length))).sent;
+    return { ok: true, newAlerts: fresh.length, sent };
+  } catch (e) {
+    return { ok: false, error: String(e && e.message || e) };
+  }
+}
+
+/** ข้อความเดียวกับ Web Push ของเว็บ (sw.js ของ oee-web) */
+export function formatDieJob(j, waiting) {
+  const more = waiting > 1 ? ' (รอรับ ' + waiting + ' งาน)' : '';
+  return {
+    type: 'normal',
+    title: '🛠️ แจ้งซ่อมแม่พิมพ์ใหม่' + more,
+    body: [j.model, j.partName, j.process].filter(Boolean).join(' · ') + '\n' + (j.problem || '') + (j.reporter ? '\nผู้แจ้ง: ' + j.reporter : ''),
+    page: 'die-maintenance',
+    tag: 'die-' + j.id
+  };
+}
+
+export async function checkAll(env) {
+  const [a, d] = await Promise.all([checkAlerts(env), checkDie(env)]);
+  return { ok: a.ok && d.ok, newAlerts: (a.newAlerts || 0) + (d.newAlerts || 0), die: d };
 }
 
 /**
