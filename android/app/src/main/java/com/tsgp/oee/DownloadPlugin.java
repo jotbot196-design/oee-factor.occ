@@ -134,6 +134,8 @@ public class DownloadPlugin extends Plugin {
         /** แจ้งเตือนจากหน้าเว็บ (เสียงปกติ) */
         @JavascriptInterface
         public void showNotice(String title, String body, String tag) {
+            // งานแจ้งซ่อมแม่พิมพ์: ตัวเฝ้าดูส่งแจ้งเตือนให้อยู่แล้ว (แม้ปิดแอป) → ไม่เด้งซ้ำจากหน้าเว็บ
+            if ("dm-new".equals(tag) || (title != null && title.contains("แจ้งซ่อมแม่พิมพ์"))) return;
             int id = tag != null && !tag.isEmpty() ? ("web-" + tag).hashCode() : (int) (System.currentTimeMillis() & 0x7fffffff);
             Alerts.show(activity, "normal", title, body, "", id);
         }
