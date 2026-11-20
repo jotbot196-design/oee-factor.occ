@@ -21,7 +21,7 @@ jobs:
           echo "KV=$ID"
           npx wrangler kv key list --namespace-id "$ID" --remote | jq -r '.[].name' | sed -E 's/^(tok:.{8}).*/\1…/'
           echo "--- status:"; npx wrangler kv key get status --namespace-id "$ID" --remote || true
-          echo; echo "--- seen:"; npx wrangler kv key get seen:mtn --namespace-id "$ID" --remote || true
+          echo; echo "--- seen:"; npx wrangler kv key get seen:mtn --namespace-id "$ID" --remote || true; echo; echo "--- seen die:"; npx wrangler kv key get seen:die --namespace-id "$ID" --remote || true
           echo; echo "--- website alerts:"; curl -sS "https://oee.sasatornua.workers.dev/api/kv?path=maintenance-alerts" | jq -c '.value | (if type=="array" then . else [.[]] end) | map({id,machine,status,ts,startTs})'
           echo "--- downtime-log last 3:"; curl -sS "https://oee.sasatornua.workers.dev/api/kv?path=downtime-log" | jq -c '.value | (if type=="array" then . else [.[]] end) | sort_by(.endTs) | .[-3:] | map({id,machine,startTs,endTs})'
       - name: Endpoints
