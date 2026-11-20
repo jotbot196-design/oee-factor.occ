@@ -48,6 +48,14 @@ export default {
           body: 'ไฟฟ้า · ทดสอบระบบแจ้งเตือน', page: 'maintenance', tag: 'test-' + Date.now() });
         return json(r);
       }
+      // แจ้งทุกเครื่องว่ามีแอปเวอร์ชันใหม่ (ใช้จาก GitHub Actions เท่านั้น — ต้องมีรหัสทดสอบ)
+      if (url.pathname === '/announce-update' && request.method === 'POST') {
+        if (request.headers.get('X-Test-Key') !== await testKey(env)) return json({ error: 'ไม่มีสิทธิ์' }, 401);
+        const v = String(url.searchParams.get('v') || '').replace(/[^0-9.]/g, '').slice(0, 12);
+        if (!v) return json({ error: 'ต้องระบุเวอร์ชัน' }, 400);
+        return json(await sendToAll(env, { type: 'normal', title: '📲 มีแอป OEE เวอร์ชันใหม่ v' + v,
+          body: 'แตะเพื่ออัปเดต — ข้อมูลและการแจ้งเตือนเดิมไม่หาย', page: 'update', tag: 'update-' + v }));
+      }
       if (url.pathname === '/status' && request.method === 'GET') {
         const [status, devices] = await Promise.all([env.STORE.get('status', 'json'), listTokens(env)]);
         return json({ devices: devices.length, ...(status || {}) });

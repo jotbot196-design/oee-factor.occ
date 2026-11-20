@@ -112,4 +112,11 @@ ok(f1.title === '🛠️ แจ้งซ่อมแม่พิมพ์ให�
 const all = await checkAll(env);
 ok(all.ok, 'checkAll ok');
 
+console.log('10) announce update');
+r = await worker.fetch(req('/announce-update?v=1.0.21', 'POST'), env);
+ok(r.status === 401, 'announce without key → 401');
+fcm = [];
+r = await worker.fetch(new Request('https://n.example/announce-update?v=1.0.21', { method: 'POST', headers: { 'X-Test-Key': await testKey(env) } }), env);
+ok(r.status === 200 && fcm.length > 0 && fcm[0].data.page === 'update' && fcm[0].data.title.includes('v1.0.21'), 'announce sends update notice');
+
 console.log('\nALL PASSED:', pass);

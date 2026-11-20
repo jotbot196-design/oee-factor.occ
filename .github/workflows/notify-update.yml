@@ -1,0 +1,24 @@
+name: Announce app update (all registered devices)
+
+on:
+  push:
+    branches: [main]
+    paths: ['push-test/notify-update.txt']
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Announce latest release
+        env:
+          FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL=$(jq -r .notifyUrl docs/app-config.json)
+          TAG=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)
+          V=${TAG#v}; echo "latest: $V"
+          KEY=$(printf '%s' "$FCM_SERVICE_ACCOUNT" | jq -r '.private_key_id + "oee-test"' | tr -d '\n' | sha256sum | cut -d' ' -f1)
+          curl -s "$URL/status"; echo
+          curl -s -X POST -H "X-Test-Key: $KEY" "$URL/announce-update?v=$V"; echo

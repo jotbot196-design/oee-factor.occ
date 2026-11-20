@@ -125,6 +125,7 @@ public class MainActivity extends BridgeActivity {
         }
         if (intent.hasExtra(Alerts.EXTRA_ID)) Alerts.acknowledge(this, intent.getIntExtra(Alerts.EXTRA_ID, 0)); // เปิดดู = รับทราบ
         String page = intent.getStringExtra("page");
+        if ("update".equals(page)) { Updater.check(this, true); return; }   // แจ้งเตือน "มีเวอร์ชันใหม่"
         if (page != null && !page.isEmpty() && getBridge() != null) {
             getBridge().getWebView().loadUrl(APP_URL + "?page=" + Uri.encode(page));
         }
@@ -228,6 +229,15 @@ public class MainActivity extends BridgeActivity {
             if (cb != null) cb.onReceiveValue(null);
             Toast.makeText(this, "เปิดตัวเลือกไฟล์ไม่ได้", Toast.LENGTH_LONG).show();
         }
+    }
+
+    // ---------- แจ้งอัปเดตแอป (เช็คตอนเปิดแอป อย่างมากทุก 3 ชม.) ----------
+    @Override
+    public void onResume() {
+        super.onResume();
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (!isFinishing()) Updater.check(this, false);
+        }, 4000);   // รอให้หน้าขออนุญาตแจ้งเตือน/แบตขึ้นก่อน
     }
 
     // ---------- เริ่มต้น ----------

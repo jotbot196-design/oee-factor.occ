@@ -12,6 +12,8 @@ on:
       - '.github/workflows/notify-test.yml'
       - '.github/workflows/deploy-notifier.yml'
       - '.github/workflows/push-test.yml'
+      - '.github/workflows/notify-update.yml'
+      - '.github/workflows/notifier-debug.yml'
   workflow_dispatch:
 
 permissions:
