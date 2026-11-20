@@ -143,7 +143,10 @@ public class MainActivity extends BridgeActivity {
     private Uri cameraOutputUri;
 
     private final ActivityResultLauncher<String> cameraPermissionLauncher =
-        registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> launchChooser(granted));
+        registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+            if (!granted) Toast.makeText(this, "ไม่ได้อนุญาตกล้อง — เลือกรูปจากคลังได้อย่างเดียว (เปิดสิทธิ์กล้องได้ในตั้งค่าแอป)", Toast.LENGTH_LONG).show();
+            launchChooser(granted);
+        });
 
     private final ActivityResultLauncher<Intent> chooserLauncher =
         registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -153,14 +156,14 @@ public class MainActivity extends BridgeActivity {
             Uri[] uris = null;
             Intent data = result.getData();
             if (result.getResultCode() == Activity.RESULT_OK) {
-                if (data != null && data.getClipData() != null) {
+                if (cameraOutputUri != null) {
+                    uris = new Uri[] { cameraOutputUri };
+                } else if (data != null && data.getClipData() != null) {
                     int n = data.getClipData().getItemCount();
                     uris = new Uri[n];
                     for (int k = 0; k < n; k++) uris[k] = data.getClipData().getItemAt(k).getUri();
                 } else if (data != null && data.getData() != null) {
                     uris = new Uri[] { data.getData() };
-                } else if (cameraOutputUri != null) {
-                    uris = new Uri[] { cameraOutputUri };
                 }
             }
             cameraOutputUri = null;
@@ -209,26 +212,47 @@ public class MainActivity extends BridgeActivity {
                 pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             }
 
-            List<Intent> extras = new ArrayList<>();
             cameraOutputUri = null;
-            if (cameraAllowed && wantsImages(p)) {
-                File photo = new File(getCacheDir(), "cam_" + System.currentTimeMillis() + ".jpg");
-                cameraOutputUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photo);
-                Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                cam.putExtra(MediaStore.EXTRA_OUTPUT, cameraOutputUri);
-                cam.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                extras.add(cam);
-            }
+            if (!(cameraAllowed && wantsImages(p))) { chooserLauncher.launch(pick); return; }
 
-            Intent chooser = Intent.createChooser(pick, "แนบรูป");
-            if (!extras.isEmpty()) chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, extras.toArray(new Intent[0]));
-            chooserLauncher.launch(chooser);
+            // ถามเองว่า "ถ่ายรูป" หรือ "เลือกจากคลัง" (Android รุ่นใหม่ซ่อนปุ่มกล้องในหน้าเลือกรูป)
+            final Intent gallery = pick;
+            new AlertDialog.Builder(this)
+                .setTitle("แนบรูป")
+                .setItems(new CharSequence[] { "📷 ถ่ายรูป", "🖼️ เลือกจากคลังรูป" }, (d, which) -> {
+                    try {
+                        if (which == 0) {
+                            File photo = new File(getCacheDir(), "cam_" + System.currentTimeMillis() + ".jpg");
+                            cameraOutputUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photo);
+                            Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                            cam.putExtra(MediaStore.EXTRA_OUTPUT, cameraOutputUri);
+                            cam.setClipData(ClipData.newRawUri("photo", cameraOutputUri));
+                            cam.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            chooserLauncher.launch(cam);
+                        } else {
+                            cameraOutputUri = null;
+                            chooserLauncher.launch(gallery);
+                        }
+                    } catch (Exception e) {
+                        cancelFileChooser("เปิดกล้อง/คลังรูปไม่ได้");
+                    }
+                })
+                .setOnCancelListener(d -> cancelFileChooser(null))
+                .show();
         } catch (Exception e) {
             ValueCallback<Uri[]> cb = pendingFileCallback;
             pendingFileCallback = null;
             if (cb != null) cb.onReceiveValue(null);
             Toast.makeText(this, "เปิดตัวเลือกไฟล์ไม่ได้", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void cancelFileChooser(String msg) {
+        ValueCallback<Uri[]> cb = pendingFileCallback;
+        pendingFileCallback = null;
+        cameraOutputUri = null;
+        if (cb != null) cb.onReceiveValue(null);
+        if (msg != null) Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 
     // ---------- แจ้งอัปเดตแอป (เช็คตอนเปิดแอป อย่างมากทุก 3 ชม.) ----------
