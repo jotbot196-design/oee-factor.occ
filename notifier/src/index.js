@@ -60,22 +60,19 @@ export async function checkAlerts(env) {
     const data = await res.json();
     const list = toList(data && data.value);
     const open = list.filter(a => a && a.id && a.status !== 'closed');
-    const ids = open.map(a => String(a.id)).sort();
+    // จำ "id@เวลาแจ้ง" — เว็บแจ้งซ้ำเครื่องเดิมจะอัปเดตเวลา (ts) จึงแจ้งเตือนอีกครั้งเหมือนที่เว็บแสดง
+    const keyOf = a => String(a.id) + '@' + (a.ts || '');
+    const keys = open.map(keyOf).sort();
 
     const prevRaw = await env.STORE.get('seen:mtn');
-    const fresh = prevRaw === null ? [] : open.filter(a => !JSON.parse(prevRaw).includes(String(a.id)));
+    const prev = prevRaw === null ? null : new Set(JSON.parse(prevRaw));
+    const fresh = prev === null ? [] : open.filter(a => !prev.has(keyOf(a)));
     // เขียน KV เฉพาะตอนรายการเปลี่ยน
-    if (prevRaw === null || prevRaw !== JSON.stringify(ids)) await env.STORE.put('seen:mtn', JSON.stringify(ids));
+    if (prevRaw === null || prevRaw !== JSON.stringify(keys)) await env.STORE.put('seen:mtn', JSON.stringify(keys));
 
     let sent = 0;
     for (const a of fresh) {
-      const r = await sendToAll(env, {
-        type: 'normal',
-        title: '🔧 งานแจ้งซ่อมใหม่: เครื่อง ' + (a.machine || '-'),
-        body: [a.cause, a.note].filter(Boolean).join(' · ') || 'กดเพื่อดูรายละเอียด',
-        page: 'maintenance',
-        tag: 'mtn-' + a.id
-      });
+      const r = await sendToAll(env, formatAlert(a));
       sent += r.sent;
     }
     status = { lastCheck: now, ok: true, openAlerts: open.length, newAlerts: fresh.length, sent, seeded: prevRaw === null };
@@ -88,6 +85,22 @@ export async function checkAlerts(env) {
     await env.STORE.put('status', JSON.stringify(status));
   }
   return status;
+}
+
+/**
+ * ข้อความแจ้งเตือน ให้ตรงกับที่เว็บ OEE แสดงในรายการแจ้งซ่อม:
+ *   เบอร์เครื่อง · สาเหตุ · อาการ (ถ้าไม่ได้กรอก เว็บแสดง "ไม่ระบุอาการ") · เวลาแจ้ง
+ */
+export function formatAlert(a) {
+  const t = a.ts ? new Date(Number(a.ts) + 7 * 3600000).toISOString().slice(11, 16) + ' น.' : '';
+  const reRaised = a.startTs && a.ts && Number(a.ts) !== Number(a.startTs);
+  return {
+    type: 'normal',
+    title: '🔧 แจ้งซ่อม' + (reRaised ? 'ซ้ำ' : '') + ': ' + (a.machine || '-'),
+    body: [a.cause, a.note || 'ไม่ระบุอาการ', t].filter(Boolean).join(' · '),
+    page: 'maintenance',
+    tag: 'mtn-' + a.id
+  };
 }
 
 // ---------------------------------------------------------------------------

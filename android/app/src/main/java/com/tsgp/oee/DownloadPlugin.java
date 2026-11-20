@@ -59,6 +59,15 @@ public class DownloadPlugin extends Plugin {
         " }" +
         " var origClick = HTMLAnchorElement.prototype.click;" +
         " HTMLAnchorElement.prototype.click = function(){ if (handle(this)) return; return origClick.apply(this, arguments); };" +
+        // แจ้งเตือนที่เว็บสร้างเอง (new Notification) → แสดงเป็นแจ้งเตือนของแอป ข้อความเดียวกับเว็บ เสียงปกติ
+        " try {" +
+        "   var N = function(title, opts){ opts = opts || {}; this.title = title; this.body = opts.body || ''; this.tag = opts.tag || ''; this.onclick = null;" +
+        "     OeeNative.showNotice(String(title || 'OEE'), String(opts.body || ''), String(opts.tag || '')); };" +
+        "   N.prototype.close = function(){}; N.prototype.addEventListener = function(){}; N.prototype.removeEventListener = function(){};" +
+        "   N.permission = 'granted';" +
+        "   N.requestPermission = function(cb){ if (typeof cb === 'function') cb('granted'); return Promise.resolve('granted'); };" +
+        "   window.Notification = N;" +
+        " } catch(e) {}" +
         " document.addEventListener('click', function(e){" +
         "   var a = e.target && e.target.closest ? e.target.closest('a[href^=\"blob:\"],a[href^=\"data:\"]') : null;" +
         "   if (a && handle(a)) { e.preventDefault(); e.stopPropagation(); }" +
@@ -98,6 +107,13 @@ public class DownloadPlugin extends Plugin {
             } catch (Exception e) {
                 showError("บันทึกไฟล์ไม่สำเร็จ: " + e.getMessage());
             }
+        }
+
+        /** แจ้งเตือนจากหน้าเว็บ (เสียงปกติ) */
+        @JavascriptInterface
+        public void showNotice(String title, String body, String tag) {
+            int id = tag != null && !tag.isEmpty() ? ("web-" + tag).hashCode() : (int) (System.currentTimeMillis() & 0x7fffffff);
+            Alerts.show(activity, "normal", title, body, "", id);
         }
 
         @JavascriptInterface

@@ -48,17 +48,19 @@ writes = 0; await worker.fetch(req('/register', 'POST', { token: tok('good1') })
 ok(writes === 0, 'same device again → no KV write');
 
 console.log('3) alerts');
-alerts = [{ id: 'a1', machine: 'MP37', status: 'open', cause: 'ไฟฟ้า' }];
+alerts = [{ id: 'a1', machine: 'MP37', status: 'open', cause: 'ไฟฟ้า', ts: 1, startTs: 1 }];
 let st = await checkAlerts(env);
 ok(st.ok && st.seeded && fcm.length === 0, 'first run seeds silently (no spam for existing jobs)');
 writes = 0; st = await checkAlerts(env);
 ok(fcm.length === 0 && writes === 0, 'no change → no notification, no KV write');
-alerts.push({ id: 'a2', machine: 'MP25', status: 'open', cause: 'ไฮดรอลิก/ลม', note: 'น้ำมันรั่ว' });
+alerts.push({ id: 'a2', machine: 'MP25', status: 'open', cause: 'ไฮดรอลิก/ลม', note: 'น้ำมันรั่ว', ts: 1795140000000, startTs: 1795140000000 });
 st = await checkAlerts(env);
 ok(st.newAlerts === 1 && fcm.length === 2, 'new job → sent to both devices');
 const m = fcm.find(x => x.token.startsWith('good'));
-ok(m.data.type === 'normal' && m.data.title.includes('MP25') && m.data.body === 'ไฮดรอลิก/ลม · น้ำมันรั่ว' && m.android.priority === 'HIGH', 'payload: ' + m.data.title);
+ok(m.data.type === 'normal' && m.data.title === '🔧 แจ้งซ่อม: MP25' && m.data.body === 'ไฮดรอลิก/ลม · น้ำมันรั่ว · 09:00 น.' && m.android.priority === 'HIGH', 'payload: ' + m.data.title + ' | ' + m.data.body);
 ok(!kv.has('tok:' + tok('dead1')), 'uninstalled device removed');
+fcm = []; alerts[0].ts = 5; await checkAlerts(env);
+ok(fcm.length === 1 && fcm[0].data.title === '🔧 แจ้งซ่อมซ้ำ: MP37' && fcm[0].data.body.startsWith('ไฟฟ้า · ไม่ระบุอาการ'), 're-reported on website → notify again: ' + fcm[0].data.title + ' | ' + fcm[0].data.body);
 fcm = []; alerts[1].status = 'closed'; await checkAlerts(env);
 ok(fcm.length === 0, 'closing a job → no notification');
 
