@@ -5,6 +5,9 @@ main = "src/index.js"
 compatibility_date = "2025-06-01"
 workers_dev = true
 
+[observability]
+enabled = true          # ดู log ได้ในหน้า Cloudflare
+
 [triggers]
 crons = ["* * * * *"]   # ทุก 1 นาที
 

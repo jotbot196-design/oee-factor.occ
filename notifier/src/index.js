@@ -34,7 +34,7 @@ export default {
         return json({ ok: true });
       }
       // แอปสะกิดทันทีหลังช่างกดส่งแจ้งซ่อม → เช็คเว็บเดี๋ยวนี้ (ไม่รับข้อความจากแอป อ่านจากเว็บจริงเสมอ)
-      if (url.pathname === '/kick' && request.method === 'POST') {
+      if (url.pathname === '/kick' && (request.method === 'POST' || request.method === 'GET')) {
         if (Date.now() - lastKick < 2000) return json({ ok: true, skipped: true });
         lastKick = Date.now();
         const st = await checkAlerts(env);
