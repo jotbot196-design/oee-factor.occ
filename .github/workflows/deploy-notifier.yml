@@ -45,7 +45,7 @@ jobs:
           sed -i "s/__KV_ID__/$ID/" wrangler.toml
 
       - name: Deploy
-        run: npx wrangler deploy
+        run: npx wrangler deploy || (echo 'retry after first-upload delay'; sleep 15; npx wrangler deploy)
 
       - name: Set Firebase key secret
         env:
