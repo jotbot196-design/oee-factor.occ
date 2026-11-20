@@ -64,6 +64,7 @@ public class OeeMessagingService extends FirebaseMessagingService {
     @Override
     public void onNewToken(@NonNull String token) {
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("token", token).putBoolean("code_shown", false).apply();
+        Registrar.register(this, token);
     }
 
     @Override

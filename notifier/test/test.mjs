@@ -1,0 +1,74 @@
+import crypto from 'node:crypto';
+import worker, { checkAlerts, signServiceAccountJwt } from '../src/index.js';
+let pass = 0; const ok = (c, m) => { if (!c) { console.error('FAIL:', m); process.exit(1); } pass++; console.log('  ✓', m); };
+
+// fake KV
+const kv = new Map();
+const STORE = {
+  get: async (k, t) => kv.has(k) ? (t === 'json' ? JSON.parse(kv.get(k)) : kv.get(k)) : null,
+  put: async (k, v) => { writes++; kv.set(k, v); },
+  delete: async k => { kv.delete(k); },
+  list: async ({ prefix }) => ({ keys: [...kv.keys()].filter(k => k.startsWith(prefix)).map(name => ({ name })), list_complete: true })
+};
+let writes = 0;
+const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const sa = { project_id: 'oee-factory-f5d9e', client_email: 'x@oee.iam.gserviceaccount.com',
+  private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) };
+const env = { STORE, OEE_API: 'https://oee.example', FCM_SERVICE_ACCOUNT: JSON.stringify(sa) };
+
+let alerts = [], fcm = [];
+globalThis.fetch = async (url, init = {}) => {
+  url = String(url);
+  if (url.startsWith('https://oee.example/api/kv')) return new Response(JSON.stringify({ value: alerts }), { status: 200 });
+  if (url === 'https://oauth2.googleapis.com/token') return new Response(JSON.stringify({ access_token: 'AT', expires_in: 3600 }));
+  if (url.includes('fcm.googleapis.com')) {
+    const b = JSON.parse(init.body); fcm.push(b.message);
+    if (b.message.token.startsWith('dead')) return new Response('{"error":{"status":"NOT_FOUND","details":[{"errorCode":"UNREGISTERED"}]}}', { status: 404 });
+    return new Response('{"name":"ok"}');
+  }
+  throw new Error('unexpected ' + url);
+};
+const tok = p => p + ':' + 'A'.repeat(140);
+
+console.log('1) JWT');
+const jwt = await signServiceAccountJwt(sa);
+const [h, p, s] = jwt.split('.');
+ok(crypto.verify('sha256', Buffer.from(h + '.' + p), publicKey, Buffer.from(s, 'base64url')), 'RS256 signature verifies');
+const claims = JSON.parse(Buffer.from(p, 'base64url'));
+ok(claims.scope.includes('firebase.messaging') && claims.aud.includes('oauth2'), 'claims correct');
+
+console.log('2) register');
+const req = (path, method, body) => new Request('https://n.example' + path, { method, body: body ? JSON.stringify(body) : undefined, headers: { 'Content-Type': 'application/json' } });
+let r = await worker.fetch(req('/register', 'POST', { token: tok('good1'), platform: 'android' }), env);
+ok(r.status === 200, 'register ok');
+await worker.fetch(req('/register', 'POST', { token: tok('dead1') }), env);
+r = await worker.fetch(req('/register', 'POST', { token: 'short' }), env);
+ok(r.status === 400, 'bad token rejected');
+writes = 0; await worker.fetch(req('/register', 'POST', { token: tok('good1') }), env);
+ok(writes === 0, 'same device again → no KV write');
+
+console.log('3) alerts');
+alerts = [{ id: 'a1', machine: 'MP37', status: 'open', cause: 'ไฟฟ้า' }];
+let st = await checkAlerts(env);
+ok(st.ok && st.seeded && fcm.length === 0, 'first run seeds silently (no spam for existing jobs)');
+writes = 0; st = await checkAlerts(env);
+ok(fcm.length === 0 && writes === 0, 'no change → no notification, no KV write');
+alerts.push({ id: 'a2', machine: 'MP25', status: 'open', cause: 'ไฮดรอลิก/ลม', note: 'น้ำมันรั่ว' });
+st = await checkAlerts(env);
+ok(st.newAlerts === 1 && fcm.length === 2, 'new job → sent to both devices');
+const m = fcm.find(x => x.token.startsWith('good'));
+ok(m.data.type === 'normal' && m.data.title.includes('MP25') && m.data.body === 'ไฮดรอลิก/ลม · น้ำมันรั่ว' && m.android.priority === 'HIGH', 'payload: ' + m.data.title);
+ok(!kv.has('tok:' + tok('dead1')), 'uninstalled device removed');
+fcm = []; alerts[1].status = 'closed'; await checkAlerts(env);
+ok(fcm.length === 0, 'closing a job → no notification');
+
+console.log('4) status');
+r = await worker.fetch(req('/status', 'GET'), env);
+const sj = await r.json();
+ok(sj.devices === 1 && sj.ok === true, 'status: ' + JSON.stringify(sj));
+
+console.log('5) API error');
+globalThis.fetch = async () => new Response('x', { status: 500 });
+st = await checkAlerts(env);
+ok(!st.ok && /500/.test(st.error), 'error recorded: ' + st.error);
+console.log('\nALL PASSED:', pass);

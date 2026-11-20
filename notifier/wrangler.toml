@@ -1,0 +1,16 @@
+# ตัวเฝ้าดูงานแจ้งซ่อม → แจ้งเตือนแอป OEE (Android)
+# Deploy อัตโนมัติด้วย GitHub Actions (.github/workflows/deploy-notifier.yml)
+name = "oee-notify"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+workers_dev = true
+
+[triggers]
+crons = ["* * * * *"]   # ทุก 1 นาที
+
+[vars]
+OEE_API = "https://oee.sasatornua.workers.dev"
+
+[[kv_namespaces]]
+binding = "STORE"
+id = "__KV_ID__"        # GitHub Actions ใส่ค่าให้ตอน deploy

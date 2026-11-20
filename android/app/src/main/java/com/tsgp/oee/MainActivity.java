@@ -67,6 +67,7 @@ public class MainActivity extends BridgeActivity {
             SharedPreferences p = prefs();
             boolean changed = !token.equals(p.getString("token", ""));
             p.edit().putString("token", token).apply();
+            Registrar.register(this, token); // ลงทะเบียนรับแจ้งเตือนงานแจ้งซ่อมอัตโนมัติ
             if (TEST_PUSH && (changed || !p.getBoolean("code_shown", false))) showPushCode(token);
         }));
     }
