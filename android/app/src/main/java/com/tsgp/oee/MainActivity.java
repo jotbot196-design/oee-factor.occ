@@ -44,7 +44,7 @@ public class MainActivity extends BridgeActivity {
 
     private static final String APP_URL = "https://oee-web.sasatornua.workers.dev/";
     /** โหมดทดสอบ: แสดงรหัสเครื่องให้คัดลอกส่งผู้ดูแล (ปิดเมื่อมีระบบหลังบ้านเก็บรหัสเอง) */
-    private static final boolean TEST_PUSH = true;
+    private static final boolean TEST_PUSH = false; // ไม่แสดงกล่องรหัสแล้ว (ดูได้จากกดค้างที่ไอคอน → รหัสแจ้งเตือน)
 
     // ---------- 1) แจ้งเตือน ----------
     private final ActivityResultLauncher<String> notifPermissionLauncher =

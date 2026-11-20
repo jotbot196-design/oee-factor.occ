@@ -1,0 +1,22 @@
+name: Notify test (all registered devices)
+
+on:
+  push:
+    branches: [main]
+    paths: ['push-test/notify-trigger.txt']
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Send test via notifier
+        env:
+          FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT }}
+        run: |
+          URL=$(jq -r .notifyUrl docs/app-config.json)
+          if [ -z "$URL" ]; then echo "ยังไม่ได้ตั้ง notifyUrl ใน docs/app-config.json"; exit 1; fi
+          KEY=$(printf '%s' "$FCM_SERVICE_ACCOUNT" | jq -r '.private_key_id + "oee-test"' | tr -d '\n' | sha256sum | cut -d' ' -f1)
+          echo "status:"; curl -s "$URL/status"; echo
+          echo "send:"; curl -s -X POST -H "X-Test-Key: $KEY" "$URL/test"; echo

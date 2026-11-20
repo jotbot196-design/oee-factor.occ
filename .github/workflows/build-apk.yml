@@ -9,6 +9,7 @@ on:
       - 'push-test/**'
       - 'backend-addon/**'
       - 'notifier/**'
+      - '.github/workflows/notify-test.yml'
       - '.github/workflows/deploy-notifier.yml'
       - '.github/workflows/push-test.yml'
   workflow_dispatch:

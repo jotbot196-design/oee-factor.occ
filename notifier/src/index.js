@@ -40,6 +40,14 @@ export default {
         const st = await checkAlerts(env);
         return json({ ok: !!st.ok, newAlerts: st.newAlerts || 0 });
       }
+      // ทดสอบส่งถึงทุกเครื่องที่ลงทะเบียน (ใช้จาก GitHub Actions เท่านั้น — ต้องมีรหัสทดสอบ)
+      if (url.pathname === '/test' && request.method === 'POST') {
+        if (request.headers.get('X-Test-Key') !== await testKey(env)) return json({ error: 'ไม่มีสิทธิ์' }, 401);
+        const t = new Date(Date.now() + 7 * 3600000).toISOString().slice(11, 19);
+        const r = await sendToAll(env, { type: 'normal', title: '🔧 แจ้งซ่อม: MP37 (ทดสอบ ' + t + ')',
+          body: 'ไฟฟ้า · ทดสอบระบบแจ้งเตือน', page: 'maintenance', tag: 'test-' + Date.now() });
+        return json(r);
+      }
       if (url.pathname === '/status' && request.method === 'GET') {
         const [status, devices] = await Promise.all([env.STORE.get('status', 'json'), listTokens(env)]);
         return json({ devices: devices.length, ...(status || {}) });
@@ -196,6 +204,13 @@ export async function signServiceAccountJwt(sa) {
   const key = await crypto.subtle.importKey('pkcs8', der, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
   const sig = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(unsigned)));
   return unsigned + '.' + b64u(sig);
+}
+
+/** รหัสทดสอบ = SHA-256(private_key_id ของ Firebase + "oee-test") — GitHub Actions คำนวณได้จาก Secret เดียวกัน */
+export async function testKey(env) {
+  const id = JSON.parse(env.FCM_SERVICE_ACCOUNT).private_key_id + 'oee-test';
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(id)));
+  return [...h].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // ---------------------------------------------------------------------------

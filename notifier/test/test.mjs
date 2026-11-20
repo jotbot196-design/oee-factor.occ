@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import worker, { checkAlerts, signServiceAccountJwt } from '../src/index.js';
+import worker, { checkAlerts, signServiceAccountJwt, testKey } from '../src/index.js';
 const ctx = { waitUntil: p => p };
 let pass = 0; const ok = (c, m) => { if (!c) { console.error('FAIL:', m); process.exit(1); } pass++; console.log('  ✓', m); };
 
@@ -13,7 +13,7 @@ const STORE = {
 };
 let writes = 0;
 const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
-const sa = { project_id: 'oee-factory-f5d9e', client_email: 'x@oee.iam.gserviceaccount.com',
+const sa = { project_id: 'oee-factory-f5d9e', private_key_id: 'kid1', client_email: 'x@oee.iam.gserviceaccount.com',
   private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) };
 const env = { STORE, OEE_API: 'https://oee.example', FCM_SERVICE_ACCOUNT: JSON.stringify(sa) };
 
@@ -77,6 +77,15 @@ let kj = await r.json();
 ok(kj.ok && kj.newAlerts === 1 && fcm.length === 1 && fcm[0].data.tag === 'mtn-a3-9', 'kick → immediate notification, tag ' + fcm[0].data.tag);
 r = await worker.fetch(req('/kick', 'POST'), env); kj = await r.json();
 ok(kj.skipped === true, 'kick rate-limited (2s)');
+
+console.log('4c) test endpoint');
+r = await worker.fetch(new Request('https://n.example/test', { method: 'POST' }), env);
+ok(r.status === 401, 'test without key → 401');
+const k = crypto.createHash('sha256').update('kid1oee-test').digest('hex');
+ok(k === await testKey(env), 'test key matches node sha256');
+fcm = []; r = await worker.fetch(new Request('https://n.example/test', { method: 'POST', headers: { 'X-Test-Key': k } }), env);
+const tj = await r.json();
+ok(tj.sent === 1 && fcm[0].data.title.includes('ทดสอบ'), 'test sends to registered devices: ' + JSON.stringify(tj));
 
 console.log('5) API error');
 globalThis.fetch = async () => new Response('x', { status: 500 });
